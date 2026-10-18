@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Language {
+  id                 String       @id @default(uuid())
+  code               String       @unique // e.g., "en", "es", "fr", "de", "it", "ja"
+  locale             String       // e.g., "en-US", "es-ES", "fr-FR", "de-DE"
+  name               String       // e.g., "Englisch", "Spanisch"
+  flag               String       // e.g., "🇬🇧", "🇪🇸", "🇫🇷", "🇩🇪"
+  createdAt          DateTime     @default(now())
+
+  sourceVocabularies Vocabulary[] @relation("SourceLanguage")
+  targetVocabularies Vocabulary[] @relation("TargetLanguage")
+}
+
+model Category {
+  id           String       @id @default(uuid())
+  name         String       @unique
+  description  String?
+  color        String       @default("#6366f1")
+  icon         String       @default("Folder")
+  createdAt    DateTime     @default(now())
+
+  vocabularies Vocabulary[]
+}
+
+model Tag {
+  id           String          @id @default(uuid())
+  name         String          @unique
+  color        String          @default("#10b981")
+  createdAt    DateTime        @default(now())
+
+  vocabularies VocabularyTag[]
+}
+
+model Vocabulary {
+  id               String            @id @default(uuid())
+  sourceText       String
+  targetTexts      String[]          // Multiple valid translations / synonyms
+  partOfSpeech     String?           // noun, verb, adjective, phrase, etc.
+  phonetic         String?           // IPA phonetic transcription
+  audioUrl         String?           // Remote URL or Data URI for pronunciation
+  notes            String?           // Additional grammar or usage hints
+  difficulty       Int               @default(1) // 1 (Easy) to 5 (Hard)
+
+  sourceLanguageId String
+  sourceLanguage   Language          @relation("SourceLanguage", fields: [sourceLanguageId], references: [id], onDelete: Cascade)
+
+  targetLanguageId String
+  targetLanguage   Language          @relation("TargetLanguage", fields: [targetLanguageId], references: [id], onDelete: Cascade)
+
+  categoryId       String?
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  examples         ExampleSentence[]
+  tags             VocabularyTag[]
+  progress         StudyProgress?
+  reviewLogs       ReviewLog[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([sourceLanguageId, targetLanguageId])
+  @@index([categoryId])
+}
+
+model ExampleSentence {
+  id           String     @id @default(uuid())
+  vocabularyId String
+  vocabulary   Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  sentence     String     // Sentence in source language
+  translation  String?    // Translation in target language
+  clozeWord    String?    // Exact word/inflection to blank out in Cloze tests
+}
+
+model VocabularyTag {
+  vocabularyId String
+  vocabulary   Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  tagId        String
+  tag          Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([vocabularyId, tagId])
+}
+
+model StudyProgress {
+  id             String     @id @default(uuid())
+  vocabularyId   String     @unique
+  vocabulary     Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  easeFactor     Float      @default(2.5)
+  intervalDays   Int        @default(0)
+  repetitions    Int        @default(0)
+  nextReviewAt   DateTime   @default(now())
+  lastReviewedAt DateTime?
+
+  successCount   Int        @default(0)
+  failCount      Int        @default(0)
+  streak         Int        @default(0)
+  masteryLevel   Int        @default(0) // 0: New, 1: Learning, 2: Familiar, 3: Confident, 4: Mastered
+}
+
+model ReviewLog {
+  id             String     @id @default(uuid())
+  vocabularyId   String
+  vocabulary     Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  mode           String     // FLASHCARD, TYPING, MULTIPLE_CHOICE, LISTENING, CLOZE, MATCHING
+  quality        Int        // 0 - 5 (SM-2 quality score)
+  wasCorrect     Boolean
+  wasAlmostRight Boolean    @default(false)
+  givenAnswer    String?
+  responseTimeMs Int        @default(0)
+  earnedXp       Int        @default(0)
+  reviewedAt     DateTime   @default(now())
+
+  @@index([reviewedAt])
+  @@index([vocabularyId])
+}
+
+model UserProfile {
+  id                    String   @id @default("default-user")
+  totalXp               Int      @default(0)
+  level                 Int      @default(1)
+  currentStreak         Int      @default(0)
+  longestStreak         Int      @default(0)
+  lastActiveDate        String?  // YYYY-MM-DD
+  dailyGoalCards        Int      @default(20)
+  typoToleranceEnabled  Boolean  @default(true)
+  maxTypoDistance       Int      @default(1)
+  preferredTtsProvider  String   @default("AUTO") // AUTO, DICTIONARY, GOOGLE_TTS, WEB_SPEECH
+  deeplApiKey           String?
+  googleTranslateApiKey String?
+  updatedAt             DateTime @updatedAt
+}
