@@ -238,11 +238,11 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
   }
 
   const masteryBadges = [
-    { label: 'Neu', cls: 'bg-slate-800 text-slate-300 border-slate-700' },
-    { label: 'Lernend', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
-    { label: 'Vertraut', cls: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
-    { label: 'Gefestigt', cls: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' },
-    { label: 'Gemeistert', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+    { label: 'Neu', cls: 'bg-stone-100 text-stone-700 border-stone-300' },
+    { label: 'Lernend', cls: 'bg-amber-100 text-amber-900 border-amber-300' },
+    { label: 'Vertraut', cls: 'bg-orange-100 text-orange-900 border-orange-300' },
+    { label: 'Gefestigt', cls: 'bg-yellow-100 text-yellow-900 border-yellow-400' },
+    { label: 'Gemeistert', cls: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
   ]
 
   return (
@@ -250,15 +250,15 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Vokabel-Sammlung & Editor</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-stone-900">Vokabel-Sammlung & Editor</h1>
+          <p className="text-sm text-stone-600">
             Verwalte deine Vokabeln, Kategorien, Tags, Beispielsätze und nutze 1-Klick Auto-Enrich
             für Übersetzungen & Hörbeispiele.
           </p>
         </div>
         <button
           onClick={openNewModal}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/25 transition"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white font-semibold shadow-md shadow-amber-900/15 transition"
         >
           <Plus className="w-4 h-4" />
           Neue Vokabel anlegen
@@ -266,22 +266,22 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white border border-amber-900/15 p-4 rounded-2xl shadow-sm">
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suche nach Wort, Übersetzung, Tag..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-10 pr-4 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:border-amber-700"
           />
         </div>
 
         <select
           value={selectedLangId}
           onChange={(e) => setSelectedLangId(e.target.value)}
-          className="px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+          className="px-3.5 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-800 focus:outline-none focus:border-amber-700"
         >
           <option value="">Alle Ausgangssprachen</option>
           {languages.map((l) => (
@@ -294,7 +294,7 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
         <select
           value={selectedCategoryId}
           onChange={(e) => setSelectedCategoryId(e.target.value)}
-          className="px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+          className="px-3.5 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-800 focus:outline-none focus:border-amber-700"
         >
           <option value="">Alle Kategorien</option>
           {categories.map((c) => (
@@ -307,7 +307,7 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
         <select
           value={selectedTagId}
           onChange={(e) => setSelectedTagId(e.target.value)}
-          className="px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+          className="px-3.5 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-800 focus:outline-none focus:border-amber-700"
         >
           <option value="">Alle Tags</option>
           {tags.map((t) => (
@@ -321,9 +321,9 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
       {/* Vocabulary List */}
       <div className="space-y-3">
         {vocabularies.length === 0 ? (
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
-            <p className="text-slate-300 font-medium">Keine passenden Vokabeln gefunden.</p>
-            <p className="text-xs text-slate-500">
+          <div className="bg-white border border-amber-900/15 rounded-2xl p-12 text-center space-y-3 shadow-sm">
+            <p className="text-stone-800 font-semibold">Keine passenden Vokabeln gefunden.</p>
+            <p className="text-xs text-stone-500">
               Erstelle eine neue Vokabel oder passe deine Suchfilter an.
             </p>
           </div>
@@ -334,7 +334,7 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
             return (
               <div
                 key={v.id}
-                className="bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                className="bg-white hover:bg-amber-50/40 border border-amber-900/15 hover:border-amber-700/30 rounded-2xl p-5 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm"
               >
                 <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2.5">
@@ -350,31 +350,31 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                         )
                       }
                       disabled={isPlaying}
-                      className="p-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/30 text-indigo-300 transition"
+                      className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 transition"
                       title="Aussprache anhören"
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
-                    <span className="text-lg font-bold text-white">{v.sourceText}</span>
+                    <span className="text-lg font-bold text-stone-900">{v.sourceText}</span>
                     {v.phonetic && (
-                      <span className="text-xs font-mono text-slate-400">{v.phonetic}</span>
+                      <span className="text-xs font-mono text-stone-500">{v.phonetic}</span>
                     )}
                     {v.partOfSpeech && (
-                      <span className="text-[11px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                      <span className="text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-amber-100/80 text-amber-900">
                         {v.partOfSpeech}
                       </span>
                     )}
-                    <span className="text-slate-500">→</span>
-                    <span className="text-base font-semibold text-indigo-300">
+                    <span className="text-amber-700 font-bold">⇔</span>
+                    <span className="text-base font-bold text-amber-800">
                       {v.targetTexts.join(', ')}
                     </span>
                   </div>
 
                   {v.examples.length > 0 && (
-                    <div className="text-xs text-slate-400 italic pl-2 border-l-2 border-indigo-500/40">
+                    <div className="text-xs text-stone-600 italic pl-2 border-l-2 border-amber-600">
                       „{v.examples[0].sentence}“
                       {v.examples[0].translation && (
-                        <span className="not-italic text-slate-500">
+                        <span className="not-italic text-stone-500">
                           {' '}
                           — {v.examples[0].translation}
                         </span>
@@ -382,28 +382,28 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                     </div>
                   )}
 
-                  {v.notes && <div className="text-xs text-slate-400">{v.notes}</div>}
+                  {v.notes && <div className="text-xs text-stone-600">{v.notes}</div>}
 
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <span className={`text-[11px] px-2.5 py-0.5 rounded-full border ${badge.cls}`}>
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badge.cls}`}>
                       {badge.label}
                     </span>
                     {v.progress && (
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-stone-500 font-medium">
                         ✓ {v.progress.successCount} • ✗ {v.progress.failCount} • Intervall:{' '}
                         {v.progress.intervalDays}d
                       </span>
                     )}
                     {v.category && (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                        <Folder className="w-3 h-3 text-indigo-400" />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-[#F4EBE1] text-stone-800">
+                        <Folder className="w-3 h-3 text-amber-800" />
                         {v.category.name}
                       </span>
                     )}
                     {v.tags.map((t) => (
                       <span
                         key={t.id}
-                        className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300"
                       >
                         <TagIcon className="w-2.5 h-2.5" />
                         {t.name}
@@ -416,21 +416,21 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                 <div className="flex items-center gap-2 self-end lg:self-center">
                   <button
                     onClick={() => openEditModal(v)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+                    className="p-2 rounded-xl bg-[#F4EBE1] hover:bg-amber-200/70 text-stone-800 transition"
                     title="Vokabel bearbeiten"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleResetProgress(v.id)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 transition"
+                    className="p-2 rounded-xl bg-[#F4EBE1] hover:bg-amber-200/70 text-stone-600 hover:text-amber-900 transition"
                     title="Lernfortschritt zurücksetzen"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(v.id)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition"
+                    className="p-2 rounded-xl bg-[#F4EBE1] hover:bg-rose-100 text-stone-600 hover:text-rose-700 transition"
                     title="Vokabel löschen"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -444,15 +444,15 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
 
       {/* Create / Edit Modal */}
       {isEditorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl my-8">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h2 className="text-xl font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#FDF8F2] border border-amber-900/20 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl my-8">
+            <div className="flex items-center justify-between border-b border-amber-900/15 pb-4">
+              <h2 className="text-xl font-bold text-stone-900">
                 {editingId ? 'Vokabel bearbeiten' : 'Neue Vokabel erstellen'}
               </h2>
               <button
                 onClick={() => setIsEditorOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-amber-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -462,13 +462,13 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
               {/* Languages Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Fremdsprache (Quellsprache)
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    Fremdsprache
                   </label>
                   <select
                     value={sourceLanguageId}
                     onChange={(e) => setSourceLanguageId(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   >
                     {languages.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -478,13 +478,13 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Zielsprache (Übersetzung)
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    Muttersprache / Übersetzung
                   </label>
                   <select
                     value={targetLanguageId}
                     onChange={(e) => setTargetLanguageId(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   >
                     {languages.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -497,8 +497,8 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
 
               {/* Source Word + 1-Click Auto-Enrich */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
-                  Vokabel / Ausdruck *
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  Vokabel (Fremdwort) *
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -507,13 +507,13 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                     value={sourceText}
                     onChange={(e) => setSourceText(e.target.value)}
                     placeholder="z.B. resilience, serendipity, imprescindible..."
-                    className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 focus:outline-none"
+                    className="flex-1 px-3.5 py-2.5 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900 focus:border-amber-700 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={handleAutoEnrich}
                     disabled={isEnriching || !sourceText.trim()}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white text-xs font-semibold shadow-md transition"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 disabled:opacity-50 text-white text-xs font-semibold shadow-sm transition"
                   >
                     {isEnriching ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -524,7 +524,7 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                   </button>
                 </div>
                 {enrichStatus && (
-                  <p className="text-xs text-indigo-400 mt-1.5 flex items-center gap-1.5">
+                  <p className="text-xs text-amber-800 font-medium mt-1.5 flex items-center gap-1.5">
                     <Check className="w-3.5 h-3.5" /> {enrichStatus}
                   </p>
                 )}
@@ -532,8 +532,8 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
 
               {/* Translations */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
-                  Übersetzungen / Synonyme (kommagetrennt) *
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  Deutsche Übersetzungen / Synonyme (kommagetrennt) *
                 </label>
                 <input
                   type="text"
@@ -541,14 +541,14 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                   value={targetTextsRaw}
                   onChange={(e) => setTargetTextsRaw(e.target.value)}
                   placeholder="z.B. Widerstandsfähigkeit, Belastbarkeit"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900 focus:border-amber-700 focus:outline-none"
                 />
               </div>
 
               {/* Phonetics, Part of Speech, Category */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Lautschrift (IPA)
                   </label>
                   <input
@@ -556,27 +556,27 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                     value={phonetic}
                     onChange={(e) => setPhonetic(e.target.value)}
                     placeholder="/rɪˈzɪliəns/"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Wortart</label>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">Wortart</label>
                   <input
                     type="text"
                     value={partOfSpeech}
                     onChange={(e) => setPartOfSpeech(e.target.value)}
                     placeholder="noun, verb, adjective..."
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Kategorie
                   </label>
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   >
                     <option value="">— Keine Kategorie —</option>
                     {categories.map((c) => (
@@ -591,7 +591,7 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
               {/* Example Sentence for Cloze Training */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Beispielsatz (für Lückentext-Training)
                   </label>
                   <input
@@ -599,11 +599,11 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                     value={exampleSentence}
                     onChange={(e) => setExampleSentence(e.target.value)}
                     placeholder="Building resilience is crucial."
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Übersetzung des Beispielsatzes
                   </label>
                   <input
@@ -611,14 +611,14 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                     value={exampleTranslation}
                     onChange={(e) => setExampleTranslation(e.target.value)}
                     placeholder="Widerstandsfähigkeit aufzubauen ist wichtig."
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                   />
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
                   Notizen / Eselsbrücke / Definition
                 </label>
                 <input
@@ -626,13 +626,13 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Zusätzliche Hinweise zur Verwendung..."
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                  className="w-full px-3 py-2 bg-white border border-amber-900/20 rounded-xl text-sm text-stone-900"
                 />
               </div>
 
               {/* Tags */}
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-400">Tags</label>
+                <label className="block text-xs font-semibold text-stone-700">Tags</label>
                 <div className="flex flex-wrap gap-1.5">
                   {tags.map((t) => {
                     const active = selectedTagNames.includes(t.name)
@@ -641,10 +641,10 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                         type="button"
                         key={t.id}
                         onClick={() => toggleTagInForm(t.name)}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                        className={`text-xs font-medium px-2.5 py-1 rounded-full border transition ${
                           active
-                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                            ? 'bg-amber-700 border-amber-800 text-white'
+                            : 'bg-white border-amber-900/20 text-stone-700 hover:border-amber-700'
                         }`}
                       >
                         #{t.name}
@@ -658,7 +658,7 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                         type="button"
                         key={custom}
                         onClick={() => toggleTagInForm(custom)}
-                        className="text-xs px-2.5 py-1 rounded-full border bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                        className="text-xs font-medium px-2.5 py-1 rounded-full border bg-amber-700 border-amber-800 text-white"
                       >
                         #{custom}
                       </button>
@@ -676,29 +676,29 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
                       }
                     }}
                     placeholder="Neuen Tag hinzufügen..."
-                    className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                    className="flex-1 px-3 py-1.5 bg-white border border-amber-900/20 rounded-xl text-xs text-stone-900"
                   />
                   <button
                     type="button"
                     onClick={addCustomTagInForm}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-200"
+                    className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-xs font-semibold text-amber-900"
                   >
                     + Tag
                   </button>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-4 border-t border-amber-900/15">
                 <button
                   type="button"
                   onClick={() => setIsEditorOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm"
+                  className="px-4 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 text-sm font-medium"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white text-sm font-semibold shadow-md"
                 >
                   Vokabel speichern
                 </button>

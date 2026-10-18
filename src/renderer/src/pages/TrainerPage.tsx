@@ -8,12 +8,14 @@ import {
   Flame,
   Trophy,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  ArrowLeftRight
 } from 'lucide-react'
 import {
   AnswerEvaluationDTO,
   CategoryDTO,
   LanguageDTO,
+  QueryDirection,
   TagDTO,
   TrainingItemDTO,
   TrainingMode
@@ -40,6 +42,8 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
   const { speak } = usePronunciation()
 
   const [mode, setMode] = useState<TrainingMode>(initialMode)
+  // Default direction: TARGET_TO_SOURCE = Deutsch -> Fremdsprache (wie gewünscht!)
+  const [direction, setDirection] = useState<QueryDirection>('TARGET_TO_SOURCE')
   const [sourceLangId, setSourceLangId] = useState(initialLanguageId ?? '')
   const [categoryId, setCategoryId] = useState('')
   const [tagId, setTagId] = useState('')
@@ -66,6 +70,7 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
   const loadSession = async () => {
     const list = await window.electronAPI.startTrainingSession({
       mode,
+      direction,
       sourceLanguageId: sourceLangId || undefined,
       categoryId: categoryId || undefined,
       tagId: tagId || undefined,
@@ -82,12 +87,21 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
 
     if (mode === 'MATCHING') {
       const left = list
-        .map((it) => ({ id: it.vocabulary.id, text: it.vocabulary.sourceText }))
+        .map((it) => ({
+          id: it.vocabulary.id,
+          text:
+            direction === 'TARGET_TO_SOURCE'
+              ? (it.vocabulary.targetTexts[0] ?? it.vocabulary.sourceText)
+              : it.vocabulary.sourceText
+        }))
         .sort(() => Math.random() - 0.5)
       const right = list
         .map((it) => ({
           id: it.vocabulary.id,
-          text: it.vocabulary.targetTexts[0] ?? it.vocabulary.sourceText
+          text:
+            direction === 'TARGET_TO_SOURCE'
+              ? it.vocabulary.sourceText
+              : (it.vocabulary.targetTexts[0] ?? it.vocabulary.sourceText)
         }))
         .sort(() => Math.random() - 0.5)
       setMatchingLeft(left)
@@ -106,7 +120,7 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
 
   useEffect(() => {
     loadSession()
-  }, [mode, sourceLangId, categoryId, tagId, dueOnly])
+  }, [mode, direction, sourceLangId, categoryId, tagId, dueOnly])
 
   const currentItem = items[currentIndex]
 
@@ -125,10 +139,16 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
     if (!currentItem || evaluation) return
     const elapsed = Date.now() - questionStartTime
 
+    const expectedForMode =
+      mode === 'LISTENING' || mode === 'CLOZE'
+        ? [currentItem.vocabulary.sourceText, ...currentItem.vocabulary.targetTexts]
+        : currentItem.expectedAnswers
+
     const result = await window.electronAPI.submitTrainingAnswer({
       vocabularyId: currentItem.vocabulary.id,
       mode,
       givenAnswer: answerToSubmit,
+      expectedAnswers: expectedForMode,
       responseTimeMs: elapsed,
       currentCombo: combo
     })
@@ -137,6 +157,16 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
     setCombo(result.newCombo)
     setSessionXp((prev) => prev + result.earnedXp)
     if (result.isCorrect) setCorrectCount((prev) => prev + 1)
+
+    // Automatically speak foreign word after solving when translating Deutsch -> Fremdsprache
+    if (currentItem.isReversed && mode !== 'LISTENING') {
+      speak(
+        currentItem.vocabulary.sourceText,
+        currentItem.vocabulary.sourceLanguage?.locale ?? 'en-US',
+        currentItem.vocabulary.audioUrl
+      )
+    }
+
     onSessionCompleted()
   }
 
@@ -212,20 +242,26 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
     { id: 'MATCHING', label: 'Matching-Spiel' }
   ]
 
+  const directionOptions: Array<{ id: QueryDirection; label: string }> = [
+    { id: 'TARGET_TO_SOURCE', label: '🇩🇪 Deutsch ➔ 🌐 Fremdsprache' },
+    { id: 'SOURCE_TO_TARGET', label: '🌐 Fremdsprache ➔ 🇩🇪 Deutsch' },
+    { id: 'MIXED', label: '🔀 Gemischt (Zufallsrichtung)' }
+  ]
+
   return (
     <div className="p-8 space-y-6 max-w-5xl mx-auto">
-      {/* Mode Selector & Session Filter Bar */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-4">
+      {/* Mode Selector & Direction Bar */}
+      <div className="bg-white border border-amber-900/15 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
             {modeTabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setMode(t.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition ${
                   mode === t.id
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
-                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    ? 'bg-gradient-to-r from-amber-700 to-orange-700 text-white shadow-md shadow-amber-900/15'
+                    : 'bg-[#FDF8F2] text-stone-700 hover:bg-amber-100/60 border border-amber-900/15'
                 }`}
               >
                 {t.label}
@@ -233,22 +269,45 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
             ))}
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-400 font-semibold border border-orange-500/20">
-              <Flame className="w-4 h-4" /> Combo: {combo}x
+          <div className="flex items-center gap-3 text-xs">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-800 font-bold border border-orange-300">
+              <Flame className="w-4 h-4 text-orange-600" /> Combo: {combo}x
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 font-semibold border border-amber-500/20">
-              <Trophy className="w-4 h-4" /> +{sessionXp} XP
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 font-bold border border-amber-300">
+              <Trophy className="w-4 h-4 text-amber-700" /> +{sessionXp} XP
             </span>
           </div>
         </div>
 
+        {/* Language Direction Selector (Prominent!) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-900/10">
+          <div className="flex items-center gap-2 text-xs font-bold text-stone-700">
+            <ArrowLeftRight className="w-4 h-4 text-amber-700" />
+            Abfragerichtung:
+          </div>
+          <div className="flex flex-wrap gap-2 flex-1">
+            {directionOptions.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setDirection(opt.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                  direction === opt.id
+                    ? 'bg-amber-800 text-white border-amber-800 shadow-sm'
+                    : 'bg-[#FDF8F2] text-stone-700 border-amber-900/20 hover:bg-amber-100/60'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Filter Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-3 border-t border-amber-900/10">
           <select
             value={sourceLangId}
             onChange={(e) => setSourceLangId(e.target.value)}
-            className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300"
+            className="px-3 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-xs font-medium text-stone-800"
           >
             <option value="">Alle Sprachen</option>
             {languages.map((l) => (
@@ -261,7 +320,7 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300"
+            className="px-3 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-xs font-medium text-stone-800"
           >
             <option value="">Alle Kategorien</option>
             {categories.map((c) => (
@@ -274,7 +333,7 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
           <select
             value={tagId}
             onChange={(e) => setTagId(e.target.value)}
-            className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300"
+            className="px-3 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-xs font-medium text-stone-800"
           >
             <option value="">Alle Tags</option>
             {tags.map((t) => (
@@ -284,51 +343,51 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
             ))}
           </select>
 
-          <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer px-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-stone-700 cursor-pointer px-2">
             <input
               type="checkbox"
               checked={dueOnly}
               onChange={(e) => setDueOnly(e.target.checked)}
-              className="rounded border-slate-700 bg-slate-950 text-indigo-600"
+              className="rounded border-amber-900/30 text-amber-700 focus:ring-amber-600"
             />
-            Fällige Vokabeln bevorzugen (SM-2)
+            Fällige bevorzugen (SM-2)
           </label>
         </div>
       </div>
 
       {/* Empty State */}
       {items.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
-          <p className="text-lg font-semibold text-white">Keine Vokabeln für diesen Filter</p>
-          <p className="text-sm text-slate-400">
+        <div className="bg-white border border-amber-900/15 rounded-2xl p-12 text-center space-y-3 shadow-sm">
+          <p className="text-lg font-bold text-stone-900">Keine Vokabeln für diesen Filter</p>
+          <p className="text-sm text-stone-600">
             Wähle eine andere Kategorie oder erstelle neue Vokabeln im Vokabel-Manager.
           </p>
         </div>
       ) : isSessionFinished ? (
         /* Session Completed Screen */
-        <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl p-10 text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+        <div className="bg-white border border-amber-900/20 rounded-2xl p-10 text-center space-y-6 shadow-md">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
             <Sparkles className="w-8 h-8" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Trainingseinheit abgeschlossen!</h2>
-            <p className="text-slate-400 text-sm">
+            <h2 className="text-2xl font-bold text-stone-900">Trainingseinheit abgeschlossen!</h2>
+            <p className="text-stone-600 text-sm">
               Alle Lernintervalle wurden nach dem SM-2 Spaced-Repetition-Algorithmus aktualisiert.
             </p>
           </div>
           <div className="flex justify-center gap-8 py-4">
             <div>
-              <div className="text-3xl font-bold text-amber-400">+{sessionXp} XP</div>
-              <div className="text-xs text-slate-400">Verdiente Erfahrung</div>
+              <div className="text-3xl font-bold text-amber-700">+{sessionXp} XP</div>
+              <div className="text-xs text-stone-500 font-medium">Verdiente Erfahrung</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-emerald-400">{correctCount}</div>
-              <div className="text-xs text-slate-400">Erfolgreiche Antworten</div>
+              <div className="text-3xl font-bold text-emerald-700">{correctCount}</div>
+              <div className="text-xs text-stone-500 font-medium">Erfolgreiche Antworten</div>
             </div>
           </div>
           <button
             onClick={loadSession}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg transition"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white font-semibold shadow-md transition"
           >
             <RotateCcw className="w-4 h-4" />
             Nächste Runde starten
@@ -336,12 +395,12 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
         </div>
       ) : mode === 'MATCHING' ? (
         /* Matching Game Mode */
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
+        <div className="bg-white border border-amber-900/15 rounded-2xl p-8 space-y-6 shadow-sm">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-bold text-stone-900">
               Verbinde die zusammengehörigen Wortpaare
             </h2>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs font-semibold text-stone-500">
               {matchedIds.length} / {matchingLeft.length} gelöst
             </span>
           </div>
@@ -356,12 +415,12 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                     key={item.id}
                     disabled={isSolved}
                     onClick={() => setSelectedLeftId(item.id)}
-                    className={`w-full p-4 rounded-xl border text-left font-medium transition ${
+                    className={`w-full p-4 rounded-xl border text-left font-semibold transition ${
                       isSolved
-                        ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-500/40 line-through'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700/40 line-through'
                         : isSelected
-                          ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg'
-                          : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-indigo-500/50'
+                          ? 'bg-amber-700 border-amber-800 text-white shadow-md'
+                          : 'bg-[#FDF8F2] border-amber-900/20 text-stone-800 hover:border-amber-600'
                     }`}
                   >
                     {item.text}
@@ -378,12 +437,12 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                     key={item.id}
                     disabled={isSolved}
                     onClick={() => handleMatchingSelectRight(item.id)}
-                    className={`w-full p-4 rounded-xl border text-left font-medium transition ${
+                    className={`w-full p-4 rounded-xl border text-left font-semibold transition ${
                       isSolved
-                        ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-500/40 line-through'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700/40 line-through'
                         : wrongPairFlash
-                          ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
-                          : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-indigo-500/50'
+                          ? 'bg-rose-100 border-rose-400 text-rose-900'
+                          : 'bg-[#FDF8F2] border-amber-900/20 text-stone-800 hover:border-amber-600'
                     }`}
                   >
                     {item.text}
@@ -395,24 +454,24 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
         </div>
       ) : (
         /* Standard Card Arena (TYPING, FLASHCARD, MULTIPLE_CHOICE, LISTENING, CLOZE) */
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6 shadow-xl">
-          {/* Progress Header */}
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="bg-white border border-amber-900/15 rounded-2xl p-8 space-y-6 shadow-md">
+          {/* Progress Header showing actual direction for current card */}
+          <div className="flex items-center justify-between text-xs text-stone-600 font-medium">
             <span>
               Karte {currentIndex + 1} von {items.length}
             </span>
-            <div className="flex items-center gap-2">
-              <span>{currentItem.vocabulary.sourceLanguage?.flag}</span>
-              <span>{currentItem.vocabulary.sourceLanguage?.name}</span>
-              <span>→</span>
-              <span>{currentItem.vocabulary.targetLanguage?.flag}</span>
-              <span>{currentItem.vocabulary.targetLanguage?.name}</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FDF8F2] border border-amber-900/15 text-stone-800 font-semibold">
+              <span>{currentItem.promptLanguage.flag}</span>
+              <span>{currentItem.promptLanguage.name}</span>
+              <span className="text-amber-700">➔</span>
+              <span>{currentItem.answerLanguage.flag}</span>
+              <span>{currentItem.answerLanguage.name}</span>
             </div>
           </div>
 
-          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-indigo-500 transition-all duration-300"
+              className="h-full bg-gradient-to-r from-amber-600 to-orange-600 transition-all duration-300"
               style={{ width: `${Math.round(((currentIndex + 1) / items.length) * 100)}%` }}
             />
           </div>
@@ -429,53 +488,59 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                       currentItem.vocabulary.audioUrl
                     )
                   }
-                  className="w-20 h-20 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center mx-auto shadow-xl shadow-indigo-600/30 transition transform hover:scale-105"
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white flex items-center justify-center mx-auto shadow-lg shadow-amber-900/20 transition transform hover:scale-105"
                 >
                   <Volume2 className="w-9 h-9" />
                 </button>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-stone-600">
                   Höre dir die Aussprache an und tippe das gehörte Wort (oder die Übersetzung) ein.
                 </p>
               </div>
             ) : mode === 'CLOZE' && currentItem.clozeSentence ? (
               <div className="space-y-3">
-                <div className="text-xs uppercase tracking-wider text-indigo-400 font-semibold">
-                  Ergänze das fehlende Wort im Satz
+                <div className="text-xs uppercase tracking-wider text-amber-800 font-bold">
+                  Ergänze das fehlende Wort ({currentItem.vocabulary.sourceLanguage?.name})
                 </div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-2xl font-bold text-stone-900">
                   „{currentItem.clozeSentence.maskedSentence}“
                 </div>
                 {currentItem.clozeSentence.translation && (
-                  <div className="text-sm text-slate-400">
-                    Hinweis / Bedeutung: {currentItem.clozeSentence.translation}
+                  <div className="text-sm text-stone-600 font-medium">
+                    Bedeutung: {currentItem.clozeSentence.translation}
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center justify-center gap-3">
-                  <h2 className="text-3xl font-bold text-white">{currentItem.promptText}</h2>
-                  <button
-                    onClick={() =>
-                      speak(
-                        currentItem.vocabulary.sourceText,
-                        currentItem.vocabulary.sourceLanguage?.locale ?? 'en-US',
-                        currentItem.vocabulary.audioUrl
-                      )
-                    }
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-400 transition"
-                    title="Aussprache abspielen"
-                  >
-                    <Volume2 className="w-5 h-5" />
-                  </button>
+                <div className="text-xs uppercase tracking-wider text-amber-800 font-bold">
+                  Gesucht wird die Übersetzung auf {currentItem.answerLanguage.flag}{' '}
+                  {currentItem.answerLanguage.name}:
                 </div>
-                {currentItem.vocabulary.phonetic && (
-                  <div className="text-sm font-mono text-slate-400">
+                <div className="flex items-center justify-center gap-3">
+                  <h2 className="text-3xl font-bold text-stone-900">{currentItem.promptText}</h2>
+                  {!currentItem.isReversed && (
+                    <button
+                      onClick={() =>
+                        speak(
+                          currentItem.vocabulary.sourceText,
+                          currentItem.vocabulary.sourceLanguage?.locale ?? 'en-US',
+                          currentItem.vocabulary.audioUrl
+                        )
+                      }
+                      className="p-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 transition"
+                      title="Aussprache abspielen"
+                    >
+                      <Volume2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                {!currentItem.isReversed && currentItem.vocabulary.phonetic && (
+                  <div className="text-sm font-mono text-stone-500">
                     {currentItem.vocabulary.phonetic}
                   </div>
                 )}
                 {currentItem.vocabulary.partOfSpeech && (
-                  <span className="inline-block text-xs px-2.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                  <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded bg-amber-100/80 text-amber-900">
                     {currentItem.vocabulary.partOfSpeech}
                   </span>
                 )}
@@ -490,50 +555,70 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                 <div className="text-center">
                   <button
                     onClick={() => setIsFlipped(true)}
-                    className="px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg transition"
+                    className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white font-semibold shadow-md transition"
                   >
                     Karte umdrehen (Lösung anzeigen)
                   </button>
                 </div>
               ) : (
-                <div className="space-y-6 border-t border-slate-800 pt-6 text-center">
+                <div className="space-y-6 border-t border-amber-900/15 pt-6 text-center">
                   <div className="space-y-2">
-                    <div className="text-2xl font-bold text-emerald-400">
-                      {currentItem.vocabulary.targetTexts.join(', ')}
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="text-2xl font-bold text-emerald-700">
+                        {currentItem.expectedAnswers.join(', ')}
+                      </div>
+                      <button
+                        onClick={() =>
+                          speak(
+                            currentItem.vocabulary.sourceText,
+                            currentItem.vocabulary.sourceLanguage?.locale ?? 'en-US',
+                            currentItem.vocabulary.audioUrl
+                          )
+                        }
+                        className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900"
+                        title="Aussprache anhören"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
                     </div>
+                    {currentItem.vocabulary.phonetic && (
+                      <div className="text-xs font-mono text-stone-500">
+                        {currentItem.vocabulary.phonetic}
+                      </div>
+                    )}
                     {currentItem.vocabulary.examples[0] && (
-                      <p className="text-sm text-slate-400 italic">
+                      <p className="text-sm text-stone-600 italic">
                         „{currentItem.vocabulary.examples[0].sentence}“
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-stone-500 font-medium">
                       Wie gut wusstest du diese Vokabel? (SM-2 Intervall-Steuerung)
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <button
                         onClick={() => handleFlashcardRating(1)}
-                        className="p-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 border border-rose-500/30 text-rose-300 text-xs font-semibold"
+                        className="p-3 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-800 text-xs font-bold"
                       >
                         Nochmal (Sofort)
                       </button>
                       <button
                         onClick={() => handleFlashcardRating(3)}
-                        className="p-3 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/30 text-amber-300 text-xs font-semibold"
+                        className="p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold"
                       >
                         Schwer (Kurzes Intervall)
                       </button>
                       <button
                         onClick={() => handleFlashcardRating(4)}
-                        className="p-3 rounded-xl bg-sky-950/60 hover:bg-sky-900/80 border border-sky-500/30 text-sky-300 text-xs font-semibold"
+                        className="p-3 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-300 text-orange-900 text-xs font-bold"
                       >
                         Gut (Standard SM-2)
                       </button>
                       <button
                         onClick={() => handleFlashcardRating(5)}
-                        className="p-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/30 text-emerald-300 text-xs font-semibold"
+                        className="p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold"
                       >
                         Einfach (Großer Sprung)
                       </button>
@@ -554,12 +639,12 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                     key={option}
                     disabled={isSelected}
                     onClick={() => handleSubmitTextOrChoice(option)}
-                    className={`p-4 rounded-xl border text-left font-medium transition ${
+                    className={`p-4 rounded-xl border text-left font-semibold transition ${
                       !isSelected
-                        ? 'bg-slate-950 border-slate-800 hover:border-indigo-500 text-slate-200'
+                        ? 'bg-[#FDF8F2] border-amber-900/20 hover:border-amber-700 text-stone-800'
                         : isCorrectOption
-                          ? 'bg-emerald-950/50 border-emerald-500 text-emerald-300'
-                          : 'bg-slate-950/40 border-slate-800 text-slate-500'
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-900'
+                          : 'bg-stone-100 border-stone-200 text-stone-400'
                     }`}
                   >
                     {option}
@@ -589,15 +674,15 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                   onChange={(e) => setTypedAnswer(e.target.value)}
                   placeholder={
                     mode === 'CLOZE' || mode === 'LISTENING'
-                      ? 'Gesuchte Vokabel eingeben...'
-                      : 'Übersetzung eingeben...'
+                      ? `Vokabel auf ${currentItem.vocabulary.sourceLanguage?.name ?? 'Fremdsprache'} eingeben...`
+                      : `Übersetzung auf ${currentItem.answerLanguage.name} eingeben...`
                   }
-                  className="flex-1 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-base text-white focus:border-indigo-500 focus:outline-none"
+                  className="flex-1 px-4 py-3 bg-[#FDF8F2] border border-amber-900/25 rounded-xl text-base text-stone-900 placeholder-stone-400 focus:border-amber-700 focus:outline-none"
                 />
                 {!evaluation && (
                   <button
                     type="submit"
-                    className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition"
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white font-semibold shadow-sm transition"
                   >
                     Prüfen
                   </button>
@@ -611,60 +696,78 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
             <div
               className={`p-5 rounded-2xl border space-y-3 ${
                 evaluation.isCorrect && !evaluation.isAlmostRight
-                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                   : evaluation.isAlmostRight
-                    ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
-                    : 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                    ? 'bg-amber-50 border-amber-300 text-amber-950'
+                    : 'bg-rose-50 border-rose-300 text-rose-950'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold text-base">
                   {evaluation.isCorrect && !evaluation.isAlmostRight ? (
                     <>
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-700" />
                       Perfekt gelöst! (+{evaluation.earnedXp} XP)
                     </>
                   ) : evaluation.isAlmostRight ? (
                     <>
-                      <AlertTriangle className="w-5 h-5 text-amber-400" />
+                      <AlertTriangle className="w-5 h-5 text-amber-700" />
                       Fast richtig – kleiner Tippfehler toleriert! (+{evaluation.earnedXp} XP)
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-5 h-5 text-rose-400" />
+                      <XCircle className="w-5 h-5 text-rose-700" />
                       Nicht ganz richtig
                     </>
                   )}
                 </div>
 
-                <span className="text-xs opacity-80">
+                <span className="text-xs font-medium opacity-80">
                   Nächste Wiederholung in {evaluation.updatedProgress.intervalDays} Tag(en) (EF:{' '}
                   {evaluation.updatedProgress.easeFactor})
                 </span>
               </div>
 
-              <div className="text-sm">
-                Richtige Lösung:{' '}
-                <strong className="text-white">
-                  {currentItem.vocabulary.targetTexts.join(', ')}
-                </strong>{' '}
-                <span className="text-slate-400">({currentItem.vocabulary.sourceText})</span>
+              <div className="flex items-center gap-2 text-sm">
+                <span>Richtige Lösung:</span>
+                <strong className="text-stone-900 font-bold">
+                  {currentItem.expectedAnswers.join(', ')}
+                </strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    speak(
+                      currentItem.vocabulary.sourceText,
+                      currentItem.vocabulary.sourceLanguage?.locale ?? 'en-US',
+                      currentItem.vocabulary.audioUrl
+                    )
+                  }
+                  className="p-1 rounded-lg bg-amber-200/70 hover:bg-amber-300 text-amber-950 transition"
+                  title="Aussprache anhören"
+                >
+                  <Volume2 className="w-4 h-4" />
+                </button>
+                {currentItem.vocabulary.phonetic && (
+                  <span className="text-xs font-mono text-stone-600">
+                    {currentItem.vocabulary.phonetic}
+                  </span>
+                )}
               </div>
 
               {/* Character Diff Display when typo occurred */}
               {evaluation.diffSegments && evaluation.levenshteinDistance > 0 && (
                 <div className="text-xs space-x-1">
-                  <span className="text-slate-400">Buchstaben-Abgleich:</span>
-                  <span className="font-mono bg-slate-950/80 px-2 py-1 rounded">
+                  <span className="text-stone-600 font-medium">Buchstaben-Abgleich:</span>
+                  <span className="font-mono bg-white border border-amber-900/15 px-2.5 py-1 rounded">
                     {evaluation.diffSegments.map((seg, i) => (
                       <span
                         key={i}
                         className={
                           seg.status === 'correct'
-                            ? 'text-emerald-400'
+                            ? 'text-emerald-700 font-semibold'
                             : seg.status === 'typo'
-                              ? 'text-amber-400 underline font-bold'
-                              : 'text-rose-400 underline'
+                              ? 'text-amber-700 underline font-bold'
+                              : 'text-rose-700 underline font-bold'
                         }
                       >
                         {seg.text}
@@ -678,7 +781,7 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
                 <button
                   onClick={handleNextCard}
                   autoFocus
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition"
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-semibold shadow-sm transition"
                 >
                   Weiter <ArrowRight className="w-4 h-4" />
                 </button>

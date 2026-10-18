@@ -100,6 +100,8 @@ export interface VocabularyFilterInput {
   dueOnly?: boolean
 }
 
+export type QueryDirection = 'TARGET_TO_SOURCE' | 'SOURCE_TO_TARGET' | 'MIXED'
+
 export interface StartSessionInput {
   mode: TrainingMode
   sourceLanguageId?: string
@@ -109,6 +111,7 @@ export interface StartSessionInput {
   dueOnly?: boolean
   limit?: number
   reverseDirection?: boolean
+  direction?: QueryDirection
 }
 
 export interface TrainingItemDTO {
@@ -117,6 +120,7 @@ export interface TrainingItemDTO {
   expectedAnswers: string[]
   promptLanguage: LanguageDTO
   answerLanguage: LanguageDTO
+  isReversed: boolean
   multipleChoiceOptions: string[]
   clozeSentence?: {
     maskedSentence: string
@@ -129,6 +133,7 @@ export interface SubmitAnswerInput {
   vocabularyId: string
   mode: TrainingMode
   givenAnswer?: string
+  expectedAnswers?: string[]
   selfRatingQuality?: number // 0..5 for Flashcard mode
   responseTimeMs: number
   currentCombo: number

@@ -61,10 +61,17 @@ export class LearningApplicationService {
 
     const limit = input.limit ?? 20
     const selected = sorted.slice(0, limit)
+    const direction = input.direction ?? (input.reverseDirection !== false ? 'TARGET_TO_SOURCE' : 'SOURCE_TO_TARGET')
 
-    return selected.map((vocab) =>
-      this.buildTrainingItem(vocab, pool, Boolean(input.reverseDirection))
-    )
+    return selected.map((vocab) => {
+      const isReversed =
+        direction === 'TARGET_TO_SOURCE'
+          ? true
+          : direction === 'SOURCE_TO_TARGET'
+            ? false
+            : Math.random() < 0.5
+      return this.buildTrainingItem(vocab, pool, isReversed)
+    })
   }
 
   private buildTrainingItem(
@@ -76,7 +83,8 @@ export class LearningApplicationService {
     const srcLang = vocab.sourceLanguage ?? defaultLang
     const tgtLang = vocab.targetLanguage ?? defaultLang
 
-    const promptText = reverse ? (vocab.targetTexts[0] ?? vocab.sourceText) : vocab.sourceText
+    // reverse === true means: Prompt in Target Language (e.g. Deutsch), Answer in Source Language (e.g. Englisch/Spanisch)
+    const promptText = reverse ? vocab.targetTexts.join(', ') : vocab.sourceText
     const expectedAnswers = reverse ? [vocab.sourceText] : vocab.targetTexts
     const promptLanguage = reverse ? tgtLang : srcLang
     const answerLanguage = reverse ? srcLang : tgtLang
@@ -93,7 +101,9 @@ export class LearningApplicationService {
       .slice(0, 3)
 
     // Fallback generic distractors if vocabulary pool has fewer than 4 items
-    const fallbackPool = ['Haus', 'laufen', 'schnell', 'Gedanke', 'Freiheit', 'to run', 'freedom']
+    const fallbackPool = reverse
+      ? ['resilience', 'accomplish', 'ubiquitous', 'endeavor', 'ephemeral']
+      : ['Widerstandsfähigkeit', 'erreichen', 'allgegenwärtig', 'Bemühung', 'flüchtig']
     while (uniqueDistractors.length < 3) {
       const candidate = fallbackPool.find(
         (f) =>
@@ -137,6 +147,7 @@ export class LearningApplicationService {
       expectedAnswers,
       promptLanguage,
       answerLanguage,
+      isReversed: reverse,
       multipleChoiceOptions,
       clozeSentence
     }
@@ -153,7 +164,10 @@ export class LearningApplicationService {
 
     let isCorrect = false
     let isAlmostRight = false
-    let matchedAnswer = vocab.targetTexts[0] ?? vocab.sourceText
+    let matchedAnswer =
+      input.expectedAnswers && input.expectedAnswers.length > 0
+        ? input.expectedAnswers[0]
+        : (vocab.targetTexts[0] ?? vocab.sourceText)
     let levenshteinDistance = 0
     let qualityScore = 0
     let diffSegments = undefined
@@ -162,11 +176,12 @@ export class LearningApplicationService {
       qualityScore = input.selfRatingQuality ?? 4
       isCorrect = qualityScore >= 3
     } else {
-      // For LISTENING and CLOZE, the user types the sourceText; for TYPING/MULTIPLE_CHOICE, the targetTexts (or either)
       const validExpectations =
-        input.mode === 'LISTENING' || input.mode === 'CLOZE'
-          ? [vocab.sourceText, ...vocab.targetTexts]
-          : [...vocab.targetTexts, vocab.sourceText]
+        input.expectedAnswers && input.expectedAnswers.length > 0
+          ? input.expectedAnswers
+          : input.mode === 'LISTENING' || input.mode === 'CLOZE'
+            ? [vocab.sourceText, ...vocab.targetTexts]
+            : [...vocab.targetTexts, vocab.sourceText]
 
       const evalOutcome = this.evaluator.evaluate(input.givenAnswer ?? '', validExpectations, {
         typoToleranceEnabled:

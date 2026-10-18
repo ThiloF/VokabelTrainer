@@ -87,8 +87,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   return (
     <div className="p-8 space-y-8 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-white">Einstellungen & Stammdaten</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-stone-900">Einstellungen & Stammdaten</h1>
+        <p className="text-sm text-stone-600">
           Konfiguriere Sprachen, Kategorien, Tags, Lernziele und optionale API-Schlüssel für DeepL /
           Google Cloud Translate.
         </p>
@@ -97,16 +97,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       {/* API Keys & Learning Preferences */}
       <form
         onSubmit={handleSaveProfile}
-        className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-5"
+        className="bg-white border border-amber-900/15 rounded-2xl p-6 space-y-5 shadow-sm"
       >
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Key className="w-5 h-5 text-indigo-400" />
+        <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+          <Key className="w-5 h-5 text-amber-700" />
           Übersetzungs-APIs & Trainings-Optionen
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">
+            <label className="block text-xs font-semibold text-stone-600 mb-1">
               DeepL API-Key (optional — Standard nutzt kostenlose Dictionary & Google GTX API)
             </label>
             <input
@@ -114,12 +114,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               value={deeplKey}
               onChange={(e) => setDeeplKey(e.target.value)}
               placeholder="z.B. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+              className="w-full px-3.5 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-900"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">
+            <label className="block text-xs font-semibold text-stone-600 mb-1">
               Google Cloud Translation API-Key (optional)
             </label>
             <input
@@ -127,12 +127,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               value={googleKey}
               onChange={(e) => setGoogleKey(e.target.value)}
               placeholder="AIzaSy..."
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+              className="w-full px-3.5 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-900"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">
+            <label className="block text-xs font-semibold text-stone-600 mb-1">
               Tägliches Lernziel (Karten pro Tag)
             </label>
             <input
@@ -141,17 +141,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               max={500}
               value={dailyGoal}
               onChange={(e) => setDailyGoal(Number(e.target.value))}
-              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+              className="w-full px-3.5 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-sm text-stone-900"
             />
           </div>
 
           <div className="flex items-center pt-5">
-            <label className="flex items-center gap-2.5 text-sm text-slate-200 cursor-pointer">
+            <label className="flex items-center gap-2.5 text-sm font-medium text-stone-800 cursor-pointer">
               <input
                 type="checkbox"
                 checked={typoTolerance}
                 onChange={(e) => setTypoTolerance(e.target.checked)}
-                className="rounded border-slate-700 bg-slate-950"
+                className="rounded border-amber-900/30"
               />
               Levenshtein Tippfehler-Toleranz (1 Buchstabe Abweichung = „Fast richtig“)
             </label>
@@ -161,12 +161,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <div className="flex items-center gap-4">
           <button
             type="submit"
-            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg transition"
+            className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white text-sm font-semibold shadow-sm transition"
           >
             Einstellungen speichern
           </button>
           {savedNotice && (
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
+            <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
               <Check className="w-4 h-4" /> Gespeichert!
             </span>
           )}
@@ -176,9 +176,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       {/* Languages, Categories, Tags Management */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Languages */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Globe className="w-4 h-4 text-indigo-400" /> Sprachen ({languages.length})
+        <div className="bg-white border border-amber-900/15 rounded-2xl p-5 space-y-4 shadow-sm">
+          <h3 className="font-bold text-stone-900 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-amber-700" /> Sprachen ({languages.length})
           </h3>
           <form onSubmit={handleAddLanguage} className="space-y-2">
             <div className="grid grid-cols-3 gap-2">
@@ -187,21 +187,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 placeholder="ISO (z.B. pt)"
                 value={langCode}
                 onChange={(e) => setLangCode(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
               />
               <input
                 type="text"
                 placeholder="pt-BR"
                 value={langLocale}
                 onChange={(e) => setLangLocale(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
               />
               <input
                 type="text"
                 placeholder="Flagge 🇵🇹"
                 value={langFlag}
                 onChange={(e) => setLangFlag(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
               />
             </div>
             <div className="flex gap-2">
@@ -210,11 +210,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 placeholder="Name (z.B. Portugiesisch)"
                 value={langName}
                 onChange={(e) => setLangName(e.target.value)}
-                className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="flex-1 px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium"
+                className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-medium"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -225,18 +225,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             {languages.map((l) => (
               <div
                 key={l.id}
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-xs"
+                className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#FDF8F2] border border-amber-900/15 text-xs text-stone-800"
               >
                 <span>
                   {l.flag} <strong>{l.name}</strong>{' '}
-                  <span className="text-slate-500">({l.locale})</span>
+                  <span className="text-stone-500">({l.locale})</span>
                 </span>
                 <button
                   onClick={async () => {
                     await window.electronAPI.deleteLanguage(l.id)
                     onDataChanged()
                   }}
-                  className="text-slate-500 hover:text-rose-400"
+                  className="text-stone-400 hover:text-rose-700"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -246,9 +246,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
 
         {/* Categories */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Folder className="w-4 h-4 text-sky-400" /> Kategorien ({categories.length})
+        <div className="bg-white border border-amber-900/15 rounded-2xl p-5 space-y-4 shadow-sm">
+          <h3 className="font-bold text-stone-900 flex items-center gap-2">
+            <Folder className="w-4 h-4 text-orange-700" /> Kategorien ({categories.length})
           </h3>
           <form onSubmit={handleAddCategory} className="space-y-2">
             <input
@@ -256,7 +256,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               placeholder="Neue Kategorie..."
               value={catName}
               onChange={(e) => setCatName(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+              className="w-full px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
             />
             <div className="flex gap-2">
               <input
@@ -264,11 +264,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 placeholder="Kurzbeschreibung (optional)"
                 value={catDesc}
                 onChange={(e) => setCatDesc(e.target.value)}
-                className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="flex-1 px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium"
+                className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-medium"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -279,18 +279,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             {categories.map((c) => (
               <div
                 key={c.id}
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-xs"
+                className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#FDF8F2] border border-amber-900/15 text-xs text-stone-800"
               >
                 <span>
                   <strong>{c.name}</strong>{' '}
-                  <span className="text-slate-500">({c.vocabularyCount ?? 0})</span>
+                  <span className="text-stone-500">({c.vocabularyCount ?? 0})</span>
                 </span>
                 <button
                   onClick={async () => {
                     await window.electronAPI.deleteCategory(c.id)
                     onDataChanged()
                   }}
-                  className="text-slate-500 hover:text-rose-400"
+                  className="text-stone-400 hover:text-rose-700"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -300,9 +300,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
 
         {/* Tags */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <TagIcon className="w-4 h-4 text-emerald-400" /> Tags ({tags.length})
+        <div className="bg-white border border-amber-900/15 rounded-2xl p-5 space-y-4 shadow-sm">
+          <h3 className="font-bold text-stone-900 flex items-center gap-2">
+            <TagIcon className="w-4 h-4 text-emerald-700" /> Tags ({tags.length})
           </h3>
           <form onSubmit={handleAddTag} className="flex gap-2">
             <input
@@ -310,11 +310,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               placeholder="Neuer Tag (z.B. Grammatik)..."
               value={tagName}
               onChange={(e) => setTagName(e.target.value)}
-              className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+              className="flex-1 px-2.5 py-1.5 bg-[#FDF8F2] border border-amber-900/20 rounded-lg text-xs text-stone-900"
             />
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium"
+              className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-medium"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -324,17 +324,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             {tags.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-xs"
+                className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#FDF8F2] border border-amber-900/15 text-xs text-stone-800"
               >
                 <span>
-                  #{t.name} <span className="text-slate-500">({t.vocabularyCount ?? 0})</span>
+                  #{t.name} <span className="text-stone-500">({t.vocabularyCount ?? 0})</span>
                 </span>
                 <button
                   onClick={async () => {
                     await window.electronAPI.deleteTag(t.id)
                     onDataChanged()
                   }}
-                  className="text-slate-500 hover:text-rose-400"
+                  className="text-stone-400 hover:text-rose-700"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

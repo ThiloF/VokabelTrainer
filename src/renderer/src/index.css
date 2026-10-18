@@ -3,18 +3,23 @@
 @tailwind utilities;
 
 @layer base {
+  body {
+    background-color: #fdf8f2;
+    color: #292524;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: #f5ebe1;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #d6c3b0;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #b89f86;
   }
 }

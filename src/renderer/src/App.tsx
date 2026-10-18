@@ -8,8 +8,7 @@ import {
   Database,
   Flame,
   Trophy,
-  AlertCircle,
-  RefreshCw
+  Leaf
 } from 'lucide-react'
 import {
   CategoryDTO,
@@ -81,18 +80,18 @@ export const App: React.FC = () => {
   ]
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900/95 border-r border-slate-800 flex flex-col justify-between shrink-0">
+    <div className="min-h-screen flex bg-[#FDF8F2] text-stone-800">
+      {/* Sidebar in warm parchment / autumn style */}
+      <aside className="w-64 bg-[#F4EBE1] border-r border-amber-900/15 flex flex-col justify-between shrink-0 shadow-sm">
         <div className="p-5 space-y-6">
           {/* Brand Logo */}
           <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-600/30">
-              VT
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-700 via-orange-700 to-amber-900 flex items-center justify-center text-amber-50 font-bold shadow-md shadow-amber-900/20">
+              <Leaf className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-white leading-tight">VokabelTrainer</div>
-              <div className="text-[11px] text-slate-400">Modular DDD Studio</div>
+              <div className="font-bold text-stone-900 leading-tight">VokabelTrainer</div>
+              <div className="text-[11px] text-amber-900/70 font-medium">Autumn Studio Edition</div>
             </div>
           </div>
 
@@ -104,10 +103,10 @@ export const App: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                      ? 'bg-gradient-to-r from-amber-700 to-orange-700 text-white shadow-md shadow-amber-800/20'
+                      : 'text-stone-700 hover:text-amber-950 hover:bg-amber-900/10'
                   }`}
                 >
                   {item.icon}
@@ -119,27 +118,27 @@ export const App: React.FC = () => {
         </div>
 
         {/* User Gamification Footer & DB Status */}
-        <div className="p-4 space-y-3 border-t border-slate-800/80">
+        <div className="p-4 space-y-3 border-t border-amber-900/15">
           {stats?.profile && (
-            <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
+            <div className="p-3.5 rounded-xl bg-[#FDF8F2] border border-amber-900/15 space-y-2 shadow-sm">
               <div className="flex items-center justify-between text-xs">
-                <span className="inline-flex items-center gap-1 text-amber-400 font-semibold">
-                  <Trophy className="w-3.5 h-3.5" /> Lvl {stats.profile.level}
+                <span className="inline-flex items-center gap-1 text-amber-800 font-bold">
+                  <Trophy className="w-3.5 h-3.5 text-amber-600" /> Lvl {stats.profile.level}
                 </span>
-                <span className="inline-flex items-center gap-1 text-orange-400 font-semibold">
-                  <Flame className="w-3.5 h-3.5" /> {stats.profile.currentStreak}d Streak
+                <span className="inline-flex items-center gap-1 text-orange-700 font-bold">
+                  <Flame className="w-3.5 h-3.5 text-orange-600" /> {stats.profile.currentStreak}d Streak
                 </span>
               </div>
-              <div className="text-[11px] text-slate-400">
-                Gesamt-Score: <strong className="text-slate-200">{stats.profile.totalXp} XP</strong>
+              <div className="text-[11px] text-stone-600">
+                Gesamt-Score: <strong className="text-stone-900">{stats.profile.totalXp} XP</strong>
               </div>
             </div>
           )}
 
-          <div className="flex items-center justify-between px-2 text-xs text-slate-400">
-            <span className="inline-flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5" />
-              Datenbank
+          <div className="flex items-center justify-between px-2 text-xs text-stone-600">
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <Database className="w-3.5 h-3.5 text-amber-800" />
+              Speicher
             </span>
             <span
               title={
@@ -147,16 +146,16 @@ export const App: React.FC = () => {
                   ? 'Verbunden mit PostgreSQL'
                   : `Lokaler Fallback-Speicher aktiv (${dbError ?? 'PostgreSQL offline'})`
               }
-              className={`inline-flex items-center gap-1 font-medium ${
-                dbConnected ? 'text-emerald-400' : 'text-amber-400'
+              className={`inline-flex items-center gap-1 font-semibold ${
+                dbConnected ? 'text-emerald-700' : 'text-amber-800'
               }`}
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  dbConnected ? 'bg-emerald-400' : 'bg-amber-400'
+                  dbConnected ? 'bg-emerald-600' : 'bg-amber-600'
                 }`}
               />
-              {dbConnected ? 'PostgreSQL' : 'Lokal (Fallback)'}
+              {dbConnected ? 'PostgreSQL' : 'Lokal aktiv'}
             </span>
           </div>
         </div>
