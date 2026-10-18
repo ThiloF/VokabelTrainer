@@ -338,6 +338,90 @@ export class ResilientDatabaseRepository
     return this.hydrateVocab(record)
   }
 
+  public async bulkSaveVocabularies(inputs: SaveVocabularyInput[]): Promise<number> {
+    if (await this.isPgOnline()) {
+      return this.pgLexicon.bulkSaveVocabularies(inputs)
+    }
+
+    const existingKeys = new Set(
+      this.state.vocabularies.map(
+        (v) => `${v.sourceText.toLowerCase()}::${v.partOfSpeech ?? ''}`
+      )
+    )
+
+    const tagMap = new Map<string, TagDTO>()
+    for (const t of this.state.tags) {
+      tagMap.set(t.name.toLowerCase(), t)
+    }
+
+    const nowIso = new Date().toISOString()
+    let addedCount = 0
+
+    for (const input of inputs) {
+      const cleanSource = input.sourceText.trim()
+      const key = `${cleanSource.toLowerCase()}::${input.partOfSpeech ?? ''}`
+      if (existingKeys.has(key)) continue
+      existingKeys.add(key)
+
+      const resolvedTags: TagDTO[] = []
+      if (input.tagNames) {
+        for (const rawName of input.tagNames) {
+          const name = rawName.trim()
+          if (!name) continue
+          let tag = tagMap.get(name.toLowerCase())
+          if (!tag) {
+            tag = { id: randomUUID(), name, color: '#d97706' }
+            this.state.tags.push(tag)
+            tagMap.set(name.toLowerCase(), tag)
+          }
+          resolvedTags.push(tag)
+        }
+      }
+
+      const record: VocabularyDTO = {
+        id: randomUUID(),
+        sourceText: cleanSource,
+        targetTexts: input.targetTexts.map((t) => t.trim()).filter(Boolean),
+        partOfSpeech: input.partOfSpeech?.trim() || null,
+        phonetic: input.phonetic?.trim() || null,
+        audioUrl: input.audioUrl?.trim() || null,
+        notes: input.notes?.trim() || null,
+        difficulty: input.difficulty ?? 2,
+        sourceLanguageId: input.sourceLanguageId,
+        targetLanguageId: input.targetLanguageId,
+        categoryId: input.categoryId || null,
+        tags: resolvedTags,
+        examples: (input.examples ?? []).map((ex) => ({
+          id: randomUUID(),
+          sentence: ex.sentence,
+          translation: ex.translation ?? null,
+          clozeWord: ex.clozeWord ?? cleanSource
+        })),
+        progress: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          nextReviewAt: nowIso,
+          lastReviewedAt: null,
+          successCount: 0,
+          failCount: 0,
+          streak: 0,
+          masteryLevel: 0
+        },
+        createdAt: nowIso,
+        updatedAt: nowIso
+      }
+
+      this.state.vocabularies.push(record)
+      addedCount++
+    }
+
+    if (addedCount > 0) {
+      this.saveState()
+    }
+    return addedCount
+  }
+
   public async deleteVocabulary(id: string): Promise<void> {
     if (await this.isPgOnline()) return this.pgLexicon.deleteVocabulary(id)
     this.state.vocabularies = this.state.vocabularies.filter((v) => v.id !== id)

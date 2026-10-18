@@ -324,6 +324,15 @@ export class PrismaLexiconRepository implements ILexiconRepository {
     return this.mapVocabulary(created)
   }
 
+  public async bulkSaveVocabularies(inputs: SaveVocabularyInput[]): Promise<number> {
+    let count = 0
+    for (const item of inputs) {
+      await this.saveVocabulary(item)
+      count++
+    }
+    return count
+  }
+
   public async deleteVocabulary(id: string): Promise<void> {
     await this.prisma.client.vocabulary.delete({ where: { id } })
   }

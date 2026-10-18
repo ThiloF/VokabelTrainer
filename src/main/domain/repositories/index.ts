@@ -39,6 +39,7 @@ export interface ILexiconRepository {
   getVocabularies(filter?: VocabularyFilterInput): Promise<VocabularyDTO[]>
   getVocabularyById(id: string): Promise<VocabularyDTO | null>
   saveVocabulary(input: SaveVocabularyInput): Promise<VocabularyDTO>
+  bulkSaveVocabularies(inputs: SaveVocabularyInput[]): Promise<number>
   deleteVocabulary(id: string): Promise<void>
 }
 

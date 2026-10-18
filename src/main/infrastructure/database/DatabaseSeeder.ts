@@ -1,20 +1,22 @@
 import { inject, injectable } from 'tsyringe'
 import { DI_TOKENS, ILexiconRepository } from '@main/domain/repositories'
+import { VERIFIED_ENGLISH_B_C_1000 } from './curated-en-b-c-index'
+import { SaveVocabularyInput } from '@shared/dto'
 
 @injectable()
 export class DatabaseSeeder {
+  private isSeeding = false
+
   constructor(
     @inject(DI_TOKENS.LexiconRepository) private readonly lexiconRepo: ILexiconRepository
   ) {}
 
   public async seedIfEmpty(): Promise<void> {
-    try {
-      const existingLanguages = await this.lexiconRepo.getLanguages()
-      if (existingLanguages.length > 0) {
-        return
-      }
+    if (this.isSeeding) return
+    this.isSeeding = true
 
-      // 1. Create Default Languages
+    try {
+      // 1. Ensure Default Languages exist
       const de = await this.lexiconRepo.saveLanguage({
         code: 'de',
         locale: 'de-DE',
@@ -27,202 +29,106 @@ export class DatabaseSeeder {
         name: 'Englisch',
         flag: '🇬🇧'
       })
-      const es = await this.lexiconRepo.saveLanguage({
+      await this.lexiconRepo.saveLanguage({
         code: 'es',
         locale: 'es-ES',
         name: 'Spanisch',
         flag: '🇪🇸'
       })
-      const fr = await this.lexiconRepo.saveLanguage({
+      await this.lexiconRepo.saveLanguage({
         code: 'fr',
         locale: 'fr-FR',
         name: 'Französisch',
         flag: '🇫🇷'
       })
-      await this.lexiconRepo.saveLanguage({
-        code: 'it',
-        locale: 'it-IT',
-        name: 'Italienisch',
-        flag: '🇮🇹'
-      })
-      await this.lexiconRepo.saveLanguage({
-        code: 'ja',
-        locale: 'ja-JP',
-        name: 'Japanisch',
-        flag: '🇯🇵'
-      })
 
-      // 2. Create Starter Categories
-      const catEveryday = await this.lexiconRepo.saveCategory({
-        name: 'Alltag & Konversation',
-        description: 'Wichtige Redewendungen und Begriffe für das tägliche Leben',
-        color: '#6366f1',
-        icon: 'MessageCircle'
+      // Check if the 1000 English vocabularies are already loaded
+      const existingEnVocabs = await this.lexiconRepo.getVocabularies({
+        sourceLanguageId: en.id
       })
-      const catBusiness = await this.lexiconRepo.saveCategory({
-        name: 'Beruf & IT',
-        description: 'Fachbegriffe für Meetings, Softwareentwicklung und Business',
-        color: '#0ea5e9',
-        icon: 'Briefcase'
-      })
-      const catTravel = await this.lexiconRepo.saveCategory({
-        name: 'Reisen & Kultur',
-        description: 'Unterwegs im Urlaub, im Restaurant und am Flughafen',
-        color: '#f59e0b',
-        icon: 'Compass'
-      })
+      if (existingEnVocabs.length >= 1000) {
+        return
+      }
 
-      // 3. Create Starter Tags
-      await this.lexiconRepo.saveTag({ name: 'Grundwortschatz', color: '#10b981' })
-      await this.lexiconRepo.saveTag({ name: 'B2-C1', color: '#8b5cf6' })
-      await this.lexiconRepo.saveTag({ name: 'Häufige Verben', color: '#ec4899' })
-      await this.lexiconRepo.saveTag({ name: 'Prüfung', color: '#ef4444' })
-
-      // 4. Create Rich Starter Vocabularies (EN -> DE, ES -> DE, FR -> DE)
-      const starterVocabs = [
+      // 2. Ensure Thematic Categories exist
+      const categoryDefs = [
         {
-          sourceText: 'resilience',
-          targetTexts: ['Widerstandsfähigkeit', 'Belastbarkeit', 'Resilienz'],
-          partOfSpeech: 'noun',
-          phonetic: '/rɪˈzɪliəns/',
-          notes: 'Oft im psychologischen oder technischen Kontext (System-Resilienz) verwendet.',
-          difficulty: 3,
-          sourceLanguageId: en.id,
-          targetLanguageId: de.id,
-          categoryId: catBusiness.id,
-          tagNames: ['B2-C1'],
-          examples: [
-            {
-              sentence: 'Building resilience in distributed systems is crucial.',
-              translation: 'Der Aufbau von Widerstandsfähigkeit in verteilten Systemen ist entscheidend.',
-              clozeWord: 'resilience'
-            }
-          ]
+          name: 'Beruf & Wirtschaft',
+          description: 'Business, Finanzen, Management und Arbeitswelt (Niveau B-C)',
+          color: '#b45309',
+          icon: 'Briefcase'
         },
         {
-          sourceText: 'serendipity',
-          targetTexts: ['glücklicher Zufall', 'glückliche Fügung'],
-          partOfSpeech: 'noun',
-          phonetic: '/ˌsɛrənˈdɪpɪti/',
-          notes: 'Wenn man etwas Gutes findet, wonach man gar nicht gesucht hat.',
-          difficulty: 4,
-          sourceLanguageId: en.id,
-          targetLanguageId: de.id,
-          categoryId: catEveryday.id,
-          tagNames: ['B2-C1'],
-          examples: [
-            {
-              sentence: 'We found that hidden café by pure serendipity.',
-              translation: 'Wir haben dieses versteckte Café durch reinen glücklichen Zufall gefunden.',
-              clozeWord: 'serendipity'
-            }
-          ]
+          name: 'Wissenschaft & Umwelt',
+          description: 'Forschung, Natur, Technologie und Ökologie (Niveau B-C)',
+          color: '#047857',
+          icon: 'Compass'
         },
         {
-          sourceText: 'ubiquitous',
-          targetTexts: ['allgegenwärtig', 'überall verbreitet'],
-          partOfSpeech: 'adjective',
-          phonetic: '/juːˈbɪkwɪtəs/',
-          notes: 'Sehr beliebt in wissenschaftlichen und technischen Texten.',
-          difficulty: 4,
-          sourceLanguageId: en.id,
-          targetLanguageId: de.id,
-          categoryId: catBusiness.id,
-          tagNames: ['B2-C1', 'Prüfung'],
-          examples: [
-            {
-              sentence: 'Smartphones have become ubiquitous in modern life.',
-              translation: 'Smartphones sind im modernen Leben allgegenwärtig geworden.',
-              clozeWord: 'ubiquitous'
-            }
-          ]
+          name: 'Politik & Recht',
+          description: 'Gesellschaft, Gesetzgebung, Diplomatie und Verwaltung (Niveau B-C)',
+          color: '#9a3412',
+          icon: 'Shield'
         },
         {
-          sourceText: 'toaccomplish',
-          targetTexts: ['erreichen', 'vollbringen', 'bewältigen'],
-          partOfSpeech: 'verb',
-          phonetic: '/əˈkʌmplɪʃ/',
-          notes: 'Meist mit Zielen, Aufgaben oder Missionen kombiniert.',
-          difficulty: 2,
-          sourceLanguageId: en.id,
-          targetLanguageId: de.id,
-          categoryId: catBusiness.id,
-          tagNames: ['Grundwortschatz', 'Häufige Verben'],
-          examples: [
-            {
-              sentence: 'We can accomplish anything if we work together.',
-              translation: 'Wir können alles erreichen, wenn wir zusammenarbeiten.',
-              clozeWord: 'accomplish'
-            }
-          ]
+          name: 'Kommunikation & Rhetorik',
+          description: 'Argumentation, Debatte, Medien und Ausdrucksweise (Niveau B-C)',
+          color: '#a16207',
+          icon: 'MessageCircle'
         },
         {
-          sourceText: 'la madrugada',
-          targetTexts: ['Morgengrauen', 'früher Morgen', 'Nachtstunden'],
-          partOfSpeech: 'noun',
-          phonetic: '/maðɾuˈɣaða/',
-          notes: 'Bezeichnet im Spanischen die Zeit zwischen Mitternacht und Sonnenaufgang.',
-          difficulty: 2,
-          sourceLanguageId: es.id,
-          targetLanguageId: de.id,
-          categoryId: catEveryday.id,
-          tagNames: ['Grundwortschatz'],
-          examples: [
-            {
-              sentence: 'El vuelo sale a las cuatro de la madrugada.',
-              translation: 'Der Flug geht um vier Uhr morgens.',
-              clozeWord: 'madrugada'
-            }
-          ]
+          name: 'Psychologie & Charakter',
+          description: 'Emotionen, Verhalten, Persönlichkeit und Denken (Niveau B-C)',
+          color: '#7c2d12',
+          icon: 'Heart'
         },
         {
-          sourceText: 'imprescindible',
-          targetTexts: ['unerlässlich', 'unverzichtbar', 'unabdingbar'],
-          partOfSpeech: 'adjective',
-          phonetic: '/impɾesθinˈdiβle/',
-          notes: 'Stärker als "necesario".',
-          difficulty: 3,
-          sourceLanguageId: es.id,
-          targetLanguageId: de.id,
-          categoryId: catTravel.id,
-          tagNames: ['B2-C1'],
-          examples: [
-            {
-              sentence: 'El pasaporte es imprescindible para este viaje.',
-              translation: 'Der Reisepass ist für diese Reise unerlässlich.',
-              clozeWord: 'imprescindible'
-            }
-          ]
-        },
-        {
-          sourceText: 'le dépaysement',
-          targetTexts: ['Tapetenwechsel', 'Gefühl der Fremde'],
-          partOfSpeech: 'noun',
-          phonetic: '/depɛizmɑ̃/',
-          notes: 'Positives Gefühl beim Reisen in eine völlig andere Umgebung/Kultur.',
-          difficulty: 4,
-          sourceLanguageId: fr.id,
-          targetLanguageId: de.id,
-          categoryId: catTravel.id,
-          tagNames: ['B2-C1'],
-          examples: [
-            {
-              sentence: 'Ce voyage au Japon offre un dépaysement total.',
-              translation: 'Diese Reise nach Japan bietet einen kompletten Tapetenwechsel.',
-              clozeWord: 'dépaysement'
-            }
-          ]
+          name: 'Alltag & Gesellschaft',
+          description: 'Kultur, Zusammenleben, Bildung und gehobener Alltagswortschatz',
+          color: '#78350f',
+          icon: 'Folder'
         }
       ]
 
-      // Fix minor typo in starterVocabs[3]
-      starterVocabs[3].sourceText = 'accomplish'
-
-      for (const vocab of starterVocabs) {
-        await this.lexiconRepo.saveVocabulary(vocab)
+      const categoryMap = new Map<string, string>()
+      for (const c of categoryDefs) {
+        const saved = await this.lexiconRepo.saveCategory(c)
+        categoryMap.set(c.name, saved.id)
       }
+
+      // 3. Build SaveVocabularyInput array for all 1,000 verified English B-C entries
+      const difficultyByLevel: Record<string, number> = {
+        B1: 2,
+        B2: 3,
+        C1: 4,
+        C2: 5
+      }
+
+      const payload: SaveVocabularyInput[] = VERIFIED_ENGLISH_B_C_1000.map(
+        ([sourceText, targetTexts, partOfSpeech, level, categoryName, sentence, translation]) => ({
+          sourceText,
+          targetTexts,
+          partOfSpeech,
+          difficulty: difficultyByLevel[level] ?? 3,
+          sourceLanguageId: en.id,
+          targetLanguageId: de.id,
+          categoryId: categoryMap.get(categoryName) ?? null,
+          tagNames: [level, 'Oxford-B-C', partOfSpeech],
+          examples: [
+            {
+              sentence,
+              translation,
+              clozeWord: sourceText
+            }
+          ]
+        })
+      )
+
+      await this.lexiconRepo.bulkSaveVocabularies(payload)
     } catch (err) {
-      console.warn('DatabaseSeeder skipped (database may not be reachable yet):', err)
+      console.warn('DatabaseSeeder warning:', err)
+    } finally {
+      this.isSeeding = false
     }
   }
 }

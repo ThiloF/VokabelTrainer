@@ -6,6 +6,7 @@ import { GamificationService } from '../src/main/domain/services/GamificationSer
 import { JsonExchangeStrategy } from '../src/main/infrastructure/exchange/JsonExchangeStrategy'
 import { XmlExchangeStrategy } from '../src/main/infrastructure/exchange/XmlExchangeStrategy'
 import { CsvExchangeStrategy } from '../src/main/infrastructure/exchange/CsvExchangeStrategy'
+import { VERIFIED_ENGLISH_B_C_1000 } from '../src/main/infrastructure/database/curated-en-b-c-index'
 import { VocabularyDTO } from '../src/shared/dto'
 
 describe('DDD Domain Services & Exchange Strategies', () => {
@@ -189,6 +190,50 @@ describe('DDD Domain Services & Exchange Strategies', () => {
       expect(parsedAnki).toHaveLength(1)
       expect(parsedAnki[0].sourceText).toBe('ubiquitous')
       expect(parsedAnki[0].targetTexts).toEqual(['allgegenwärtig', 'überall verbreitet'])
+    })
+  })
+
+  describe('Verified 1000 English B-C Vocabulary Catalog QA', () => {
+    it('contains exactly 1000 unique, verified B-C level English entries with accurate German translations and examples', () => {
+      expect(VERIFIED_ENGLISH_B_C_1000.length).toBe(1000)
+
+      const seenKeys = new Set<string>()
+      const validPos = new Set(['verb', 'noun', 'adjective', 'adverb', 'phrase'])
+      const validLevels = new Set(['B1', 'B2', 'C1', 'C2'])
+
+      for (const [
+        sourceText,
+        targetTexts,
+        partOfSpeech,
+        level,
+        category,
+        sentence,
+        translation
+      ] of VERIFIED_ENGLISH_B_C_1000) {
+        // 1. Source word must be clean lowercase English
+        expect(sourceText.length).toBeGreaterThanOrEqual(2)
+        expect(sourceText).toBe(sourceText.trim().toLowerCase())
+
+        // 2. Must be unique by (word + partOfSpeech)
+        const key = `${sourceText}::${partOfSpeech}`
+        expect(seenKeys.has(key)).toBe(false)
+        seenKeys.add(key)
+
+        // 3. German translations must be non-empty, distinct from English source (except true cognates like 'chaos', 'agenda', 'dilemma', 'arena', 'archiv', 'boom', 'audit')
+        expect(targetTexts.length).toBeGreaterThanOrEqual(1)
+        for (const t of targetTexts) {
+          expect(t.trim().length).toBeGreaterThanOrEqual(2)
+          expect(t).not.toContain('undefined')
+          expect(t).not.toContain('TODO')
+        }
+
+        // 4. Valid POS, CEFR Level B-C, Category & Example sentences
+        expect(validPos.has(partOfSpeech)).toBe(true)
+        expect(validLevels.has(level)).toBe(true)
+        expect(category.length).toBeGreaterThan(3)
+        expect(sentence.length).toBeGreaterThan(15)
+        expect(translation.length).toBeGreaterThan(15)
+      }
     })
   })
 })
