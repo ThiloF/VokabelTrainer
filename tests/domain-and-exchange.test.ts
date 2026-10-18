@@ -6,6 +6,7 @@ import { GamificationService } from '../src/main/domain/services/GamificationSer
 import { JsonExchangeStrategy } from '../src/main/infrastructure/exchange/JsonExchangeStrategy'
 import { XmlExchangeStrategy } from '../src/main/infrastructure/exchange/XmlExchangeStrategy'
 import { CsvExchangeStrategy } from '../src/main/infrastructure/exchange/CsvExchangeStrategy'
+import { LearningApplicationService } from '../src/main/application/LearningApplicationService'
 import { VERIFIED_ENGLISH_B_C_1000 } from '../src/main/infrastructure/database/curated-en-b-c-index'
 import { VocabularyDTO } from '../src/shared/dto'
 
@@ -236,4 +237,140 @@ describe('DDD Domain Services & Exchange Strategies', () => {
       }
     })
   })
+
+  describe('Consolidation-First Card Selection (selectCardsForSession)', () => {
+    const learningService = new LearningApplicationService(
+      {} as any,
+      {} as any,
+      {} as any,
+      new SM2Service(),
+      new AnswerEvaluator(),
+      new GamificationService()
+    )
+
+    const makeCard = (
+      id: string,
+      opts: {
+        successCount: number
+        failCount: number
+        masteryLevel: number
+        streak: number
+        nextReviewAt: string
+      }
+    ): VocabularyDTO => ({
+      id,
+      sourceText: `word-${id}`,
+      targetTexts: [`wort-${id}`],
+      difficulty: 2,
+      sourceLanguageId: 'en',
+      targetLanguageId: 'de',
+      tags: [],
+      examples: [],
+      progress: {
+        easeFactor: 2.5,
+        intervalDays: opts.masteryLevel,
+        repetitions: opts.streak,
+        nextReviewAt: opts.nextReviewAt,
+        lastReviewedAt: new Date('2026-10-18T10:00:00Z').toISOString(),
+        successCount: opts.successCount,
+        failCount: opts.failCount,
+        streak: opts.streak,
+        masteryLevel: opts.masteryLevel
+      },
+      createdAt: '2026-10-18T08:00:00Z',
+      updatedAt: '2026-10-18T08:00:00Z'
+    })
+
+    it('keeps serving the 15 started unconsolidated cards before introducing any unseen cards', () => {
+      const now = new Date('2026-10-18T18:00:00Z')
+      const tomorrowIso = new Date('2026-10-19T10:00:00Z').toISOString()
+      const pastIso = new Date('2026-10-18T08:00:00Z').toISOString()
+
+      // 15 cards looked at once (masteryLevel 1, streak 1, nextReviewAt tomorrow)
+      const started15 = Array.from({ length: 15 }, (_, i) =>
+        makeCard(`started-${i + 1}`, {
+          successCount: 1,
+          failCount: 0,
+          masteryLevel: 1,
+          streak: 1,
+          nextReviewAt: tomorrowIso
+        })
+      )
+
+      // 50 unseen cards (masteryLevel 0, successCount 0, failCount 0, nextReviewAt in the past)
+      const unseen50 = Array.from({ length: 50 }, (_, i) =>
+        makeCard(`unseen-${i + 1}`, {
+          successCount: 0,
+          failCount: 0,
+          masteryLevel: 0,
+          streak: 0,
+          nextReviewAt: pastIso
+        })
+      )
+
+      const selected = learningService.selectCardsForSession(
+        [...unseen50, ...started15],
+        15,
+        'CONSOLIDATE_FIRST',
+        now
+      )
+
+      expect(selected).toHaveLength(15)
+      // Every single selected card must be one of the 15 started cards!
+      expect(selected.every((c) => c.id.startsWith('started-'))).toBe(true)
+    })
+
+    it('gradually refills only the consolidated slots with new cards once old cards sit firmly', () => {
+      const now = new Date('2026-10-18T18:00:00Z')
+      const nextWeekIso = new Date('2026-10-25T10:00:00Z').toISOString()
+      const pastIso = new Date('2026-10-18T08:00:00Z').toISOString()
+
+      // 5 cards already consolidated (masteryLevel 2, streak 2, not due until next week)
+      const consolidated5 = Array.from({ length: 5 }, (_, i) =>
+        makeCard(`solid-${i + 1}`, {
+          successCount: 2,
+          failCount: 0,
+          masteryLevel: 2,
+          streak: 2,
+          nextReviewAt: nextWeekIso
+        })
+      )
+
+      // 10 cards still in learning (masteryLevel 1, streak 1)
+      const learning10 = Array.from({ length: 10 }, (_, i) =>
+        makeCard(`learning-${i + 1}`, {
+          successCount: 1,
+          failCount: 0,
+          masteryLevel: 1,
+          streak: 1,
+          nextReviewAt: nextWeekIso
+        })
+      )
+
+      // 30 unseen cards
+      const unseen30 = Array.from({ length: 30 }, (_, i) =>
+        makeCard(`unseen-${i + 1}`, {
+          successCount: 0,
+          failCount: 0,
+          masteryLevel: 0,
+          streak: 0,
+          nextReviewAt: pastIso
+        })
+      )
+
+      const selected = learningService.selectCardsForSession(
+        [...unseen30, ...consolidated5, ...learning10],
+        15,
+        'CONSOLIDATE_FIRST',
+        now
+      )
+
+      expect(selected).toHaveLength(15)
+      const learningChosen = selected.filter((c) => c.id.startsWith('learning-'))
+      const unseenChosen = selected.filter((c) => c.id.startsWith('unseen-'))
+      expect(learningChosen).toHaveLength(10)
+      expect(unseenChosen).toHaveLength(5)
+    })
+  })
 })
+

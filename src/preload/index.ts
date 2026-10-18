@@ -14,6 +14,10 @@ const api: ElectronAPI = {
   getCategories: () => ipcRenderer.invoke(IPC_CHANNELS.GET_CATEGORIES),
   saveCategory: (cat) => ipcRenderer.invoke(IPC_CHANNELS.SAVE_CATEGORY, cat),
   deleteCategory: (id) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_CATEGORY, id),
+  assignVocabulariesToCategory: (vocabularyIds, categoryId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.ASSIGN_VOCABULARIES_TO_CATEGORY, vocabularyIds, categoryId),
+  populateCategoryBatch: (input) =>
+    ipcRenderer.invoke(IPC_CHANNELS.POPULATE_CATEGORY_BATCH, input),
 
   getTags: () => ipcRenderer.invoke(IPC_CHANNELS.GET_TAGS),
   saveTag: (tag) => ipcRenderer.invoke(IPC_CHANNELS.SAVE_TAG, tag),

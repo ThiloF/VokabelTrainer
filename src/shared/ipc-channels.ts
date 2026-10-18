@@ -43,6 +43,8 @@ export const IPC_CHANNELS = {
   SAVE_VOCABULARY: 'lexicon:save-vocabulary',
   DELETE_VOCABULARY: 'lexicon:delete-vocabulary',
   RESET_VOCABULARY_PROGRESS: 'lexicon:reset-progress',
+  ASSIGN_VOCABULARIES_TO_CATEGORY: 'lexicon:assign-category',
+  POPULATE_CATEGORY_BATCH: 'lexicon:populate-category-batch',
 
   // Enrichment & Audio
   ENRICH_VOCABULARY: 'enrichment:enrich',
@@ -80,6 +82,13 @@ export interface ElectronAPI {
   saveVocabulary: (input: SaveVocabularyInput) => Promise<VocabularyDTO>
   deleteVocabulary: (id: string) => Promise<void>
   resetVocabularyProgress: (id: string) => Promise<void>
+  assignVocabulariesToCategory: (vocabularyIds: string[], categoryId: string | null) => Promise<number>
+  populateCategoryBatch: (params: {
+    targetCategoryId: string
+    count: number
+    tagId?: string
+    onlyUnstarted?: boolean
+  }) => Promise<number>
 
   enrichVocabulary: (req: EnrichmentRequestDTO) => Promise<EnrichmentResultDTO>
   fetchTtsAudio: (text: string, langCode: string) => Promise<string | null>

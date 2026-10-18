@@ -430,6 +430,24 @@ export const VocabularyPage: React.FC<VocabularyPageProps> = ({
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 self-end lg:self-center">
+                  <select
+                    value={v.categoryId ?? ''}
+                    onChange={async (e) => {
+                      const targetCat = e.target.value || null
+                      await window.electronAPI.assignVocabulariesToCategory([v.id], targetCat)
+                      await loadVocabularies()
+                      onDataChanged()
+                    }}
+                    title="In Karteikarten-Ordner verschieben"
+                    className="px-2.5 py-1.5 rounded-xl bg-[#FDF8F2] border border-amber-900/20 text-xs font-semibold text-stone-800 focus:outline-none focus:border-amber-700"
+                  >
+                    <option value="">📁 Kein Ordner</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        📁 {c.name}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={() => openEditModal(v)}
                     className="p-2 rounded-xl bg-[#F4EBE1] hover:bg-amber-200/70 text-stone-800 transition"

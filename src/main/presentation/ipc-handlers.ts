@@ -71,6 +71,17 @@ export function registerIpcHandlers(container: DependencyContainer): void {
     return lexiconRepo.deleteCategory(id)
   })
 
+  ipcMain.handle(
+    IPC_CHANNELS.ASSIGN_VOCABULARIES_TO_CATEGORY,
+    async (_event, vocabularyIds: string[], categoryId: string | null) => {
+      return lexiconRepo.assignVocabulariesToCategory(vocabularyIds, categoryId)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.POPULATE_CATEGORY_BATCH, async (_event, input) => {
+    return lexiconRepo.populateCategoryBatch(input)
+  })
+
   // Tags
   ipcMain.handle(IPC_CHANNELS.GET_TAGS, async () => {
     return lexiconRepo.getTags()

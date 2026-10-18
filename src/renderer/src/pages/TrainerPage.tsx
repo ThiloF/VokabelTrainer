@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import {
   AnswerEvaluationDTO,
+  CardFocusMode,
   CategoryDTO,
   LanguageDTO,
   QueryDirection,
@@ -25,6 +26,7 @@ import { usePronunciation } from '../hooks/usePronunciation'
 interface TrainerPageProps {
   initialMode: TrainingMode
   initialLanguageId?: string
+  initialCategoryId?: string
   languages: LanguageDTO[]
   categories: CategoryDTO[]
   tags: TagDTO[]
@@ -34,6 +36,7 @@ interface TrainerPageProps {
 export const TrainerPage: React.FC<TrainerPageProps> = ({
   initialMode,
   initialLanguageId,
+  initialCategoryId,
   languages,
   categories,
   tags,
@@ -44,8 +47,9 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
   const [mode, setMode] = useState<TrainingMode>(initialMode)
   // Default direction: TARGET_TO_SOURCE = Deutsch -> Fremdsprache (wie gewünscht!)
   const [direction, setDirection] = useState<QueryDirection>('TARGET_TO_SOURCE')
+  const [focusMode, setFocusMode] = useState<CardFocusMode>('CONSOLIDATE_FIRST')
   const [sourceLangId, setSourceLangId] = useState(initialLanguageId ?? '')
-  const [categoryId, setCategoryId] = useState('')
+  const [categoryId, setCategoryId] = useState(initialCategoryId ?? '')
   const [tagId, setTagId] = useState('')
   const [dueOnly, setDueOnly] = useState(true)
 
@@ -71,6 +75,7 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
     const list = await window.electronAPI.startTrainingSession({
       mode,
       direction,
+      focusMode,
       sourceLanguageId: sourceLangId || undefined,
       categoryId: categoryId || undefined,
       tagId: tagId || undefined,
@@ -116,11 +121,14 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
     if (initialLanguageId !== undefined) {
       setSourceLangId(initialLanguageId)
     }
-  }, [initialMode, initialLanguageId])
+    if (initialCategoryId !== undefined) {
+      setCategoryId(initialCategoryId)
+    }
+  }, [initialMode, initialLanguageId, initialCategoryId])
 
   useEffect(() => {
     loadSession()
-  }, [mode, direction, sourceLangId, categoryId, tagId, dueOnly])
+  }, [mode, direction, focusMode, sourceLangId, categoryId, tagId, dueOnly])
 
   const currentItem = items[currentIndex]
 
@@ -248,6 +256,31 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
     { id: 'MIXED', label: '🔀 Gemischt (Zufallsrichtung)' }
   ]
 
+  const focusOptions: Array<{ id: CardFocusMode; label: string; hint: string }> = [
+    {
+      id: 'CONSOLIDATE_FIRST',
+      label: '🛡️ Erst festigen, dann Neue (Empfohlen)',
+      hint: 'Angefangene Karten werden wiederholt, bis sie sitzen – erst danach kommen neue dazu.'
+    },
+    {
+      id: 'ACTIVE_ONLY',
+      label: '🔁 Nur angefangene Karten',
+      hint: 'Übt ausschließlich Vokabeln, die du bereits mindestens einmal angeschaut hast.'
+    },
+    {
+      id: 'NEW_ONLY',
+      label: '✨ Neue Karten entdecken',
+      hint: 'Zeigt bevorzugt noch ungesehene Vokabeln.'
+    },
+    {
+      id: 'ALL_SHUFFLE',
+      label: '🔀 Alle zufällig mischen',
+      hint: 'Zufällige Auswahl aus dem aktuellen Filter.'
+    }
+  ]
+
+  const selectedFolder = categories.find((c) => c.id === categoryId)
+
   return (
     <div className="p-8 space-y-6 max-w-5xl mx-auto">
       {/* Mode Selector & Direction Bar */}
@@ -302,6 +335,33 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
           </div>
         </div>
 
+        {/* Consolidation / Card Focus Strategy Selector */}
+        <div className="space-y-2 pt-3 border-t border-amber-900/10">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold text-stone-700">
+              Karten-Auswahl & Wiederholungs-Strategie:
+            </span>
+            <span className="text-[11px] text-amber-900/80 font-medium">
+              {focusOptions.find((f) => f.id === focusMode)?.hint}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {focusOptions.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFocusMode(f.id)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border text-left transition ${
+                  focusMode === f.id
+                    ? 'bg-amber-100 border-amber-700 text-amber-950 shadow-sm'
+                    : 'bg-[#FDF8F2] border-amber-900/15 text-stone-700 hover:bg-amber-50'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Filter Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-3 border-t border-amber-900/10">
           <select
@@ -320,12 +380,12 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="px-3 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-xs font-medium text-stone-800"
+            className="px-3 py-2 bg-[#FDF8F2] border border-amber-900/20 rounded-xl text-xs font-bold text-amber-950"
           >
-            <option value="">Alle Kategorien</option>
+            <option value="">📁 Alle Karteikarten-Ordner</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                📁 {c.name} ({c.vocabularyCount ?? 0} • Score {c.folderScorePercent ?? 0}%)
               </option>
             ))}
           </select>
@@ -353,6 +413,52 @@ export const TrainerPage: React.FC<TrainerPageProps> = ({
             Fällige bevorzugen (SM-2)
           </label>
         </div>
+
+        {/* Live Folder Score Banner when practicing a specific Karteikarten-Ordner */}
+        {selectedFolder && (
+          <div className="p-3.5 rounded-xl bg-[#FDF8F2] border border-amber-700/25 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-3.5 h-8 rounded-full"
+                style={{ backgroundColor: selectedFolder.color || '#d97706' }}
+              />
+              <div>
+                <div className="text-xs font-bold text-stone-900">
+                  Aktiver Ordner: {selectedFolder.name} ({selectedFolder.vocabularyCount ?? 0}{' '}
+                  Karten)
+                </div>
+                <div className="text-[11px] text-stone-600">
+                  Neu: <strong>{selectedFolder.newCount ?? 0}</strong> • Im Lernen:{' '}
+                  <strong>{selectedFolder.learningCount ?? 0}</strong> • Vertraut/Gefestigt:{' '}
+                  <strong>
+                    {(selectedFolder.familiarCount ?? 0) + (selectedFolder.confidentCount ?? 0)}
+                  </strong>{' '}
+                  • Sitzt 100%: <strong>{selectedFolder.masteredCount ?? 0}</strong>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">
+                  Trefferquote
+                </div>
+                <div className="text-sm font-bold text-stone-800">
+                  {(selectedFolder.accuracyPercent ?? 0) > 0
+                    ? `${selectedFolder.accuracyPercent}%`
+                    : '—'}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wider text-amber-800 font-bold">
+                  Ordner-Score
+                </div>
+                <div className="text-lg font-extrabold text-amber-800">
+                  {selectedFolder.folderScorePercent ?? 0}%
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Empty State */}

@@ -28,40 +28,21 @@ export class LearningApplicationService {
   ) {}
 
   public async startSession(input: StartSessionInput): Promise<TrainingItemDTO[]> {
-    const allMatching = await this.lexiconRepo.getVocabularies({
+    // Always fetch the full pool for the chosen language/folder/tag so that
+    // started cards in the consolidation phase (masteryLevel < 2) are never
+    // hidden behind unseen cards whose initial nextReviewAt is <= now.
+    const pool = await this.lexiconRepo.getVocabularies({
       sourceLanguageId: input.sourceLanguageId,
       targetLanguageId: input.targetLanguageId,
       categoryId: input.categoryId,
-      tagId: input.tagId,
-      dueOnly: input.dueOnly
+      tagId: input.tagId
     })
 
-    // If dueOnly was requested but none are due, fall back to all matching so user can still practice
-    const pool =
-      allMatching.length > 0
-        ? allMatching
-        : await this.lexiconRepo.getVocabularies({
-            sourceLanguageId: input.sourceLanguageId,
-            targetLanguageId: input.targetLanguageId,
-            categoryId: input.categoryId,
-            tagId: input.tagId
-          })
-
-    // Sort: Due cards first, then lower mastery level, then slight randomization
-    const now = new Date()
-    const sorted = [...pool].sort((a, b) => {
-      const aDue = !a.progress || new Date(a.progress.nextReviewAt) <= now ? 0 : 1
-      const bDue = !b.progress || new Date(b.progress.nextReviewAt) <= now ? 0 : 1
-      if (aDue !== bDue) return aDue - bDue
-      const aLevel = a.progress?.masteryLevel ?? 0
-      const bLevel = b.progress?.masteryLevel ?? 0
-      if (aLevel !== bLevel) return aLevel - bLevel
-      return Math.random() - 0.5
-    })
-
-    const limit = input.limit ?? 20
-    const selected = sorted.slice(0, limit)
-    const direction = input.direction ?? (input.reverseDirection !== false ? 'TARGET_TO_SOURCE' : 'SOURCE_TO_TARGET')
+    const limit = input.limit ?? 15
+    const focusMode = input.focusMode ?? 'CONSOLIDATE_FIRST'
+    const selected = this.selectCardsForSession(pool, limit, focusMode, new Date())
+    const direction =
+      input.direction ?? (input.reverseDirection !== false ? 'TARGET_TO_SOURCE' : 'SOURCE_TO_TARGET')
 
     return selected.map((vocab) => {
       const isReversed =
@@ -72,6 +53,89 @@ export class LearningApplicationService {
             : Math.random() < 0.5
       return this.buildTrainingItem(vocab, pool, isReversed)
     })
+  }
+
+  /**
+   * Selects cards for a study session ensuring that already-viewed/started cards
+   * are consolidated ("sitzen") before new unseen cards are introduced.
+   */
+  public selectCardsForSession(
+    pool: VocabularyDTO[],
+    limit: number,
+    focusMode: NonNullable<StartSessionInput['focusMode']> = 'CONSOLIDATE_FIRST',
+    now: Date = new Date()
+  ): VocabularyDTO[] {
+    if (pool.length === 0) return []
+
+    if (focusMode === 'ALL_SHUFFLE') {
+      return [...pool].sort(() => Math.random() - 0.5).slice(0, limit)
+    }
+
+    const isStarted = (v: VocabularyDTO): boolean =>
+      ((v.progress?.successCount ?? 0) + (v.progress?.failCount ?? 0)) > 0
+
+    const isDue = (v: VocabularyDTO): boolean =>
+      !v.progress || new Date(v.progress.nextReviewAt) <= now
+
+    // A started card is considered "unconsolidated" (sitzt noch nicht fest) if:
+    // - its masteryLevel < 2 (still New/Failed or Learning with < 2 successful repetitions), OR
+    // - its current streak < 2, OR
+    // - it is currently due for scheduled review (nextReviewAt <= now).
+    const isUnconsolidated = (v: VocabularyDTO): boolean => {
+      if (!isStarted(v)) return false
+      const level = v.progress?.masteryLevel ?? 0
+      const streak = v.progress?.streak ?? 0
+      return level < 2 || streak < 2 || isDue(v)
+    }
+
+    const sortStartedPriority = (a: VocabularyDTO, b: VocabularyDTO): number => {
+      const aDueScore = isDue(a) ? 0 : 1
+      const bDueScore = isDue(b) ? 0 : 1
+      if (aDueScore !== bDueScore) return aDueScore - bDueScore
+
+      const aLevel = a.progress?.masteryLevel ?? 0
+      const bLevel = b.progress?.masteryLevel ?? 0
+      if (aLevel !== bLevel) return aLevel - bLevel
+
+      const aStreak = a.progress?.streak ?? 0
+      const bStreak = b.progress?.streak ?? 0
+      if (aStreak !== bStreak) return aStreak - bStreak
+
+      const aNext = a.progress?.nextReviewAt ? new Date(a.progress.nextReviewAt).getTime() : 0
+      const bNext = b.progress?.nextReviewAt ? new Date(b.progress.nextReviewAt).getTime() : 0
+      return aNext - bNext
+    }
+
+    const unconsolidatedStarted = pool
+      .filter((v) => isUnconsolidated(v))
+      .sort(sortStartedPriority)
+
+    const consolidatedStarted = pool
+      .filter((v) => isStarted(v) && !isUnconsolidated(v))
+      .sort(sortStartedPriority)
+
+    const unseenCards = pool
+      .filter((v) => !isStarted(v))
+      .sort((a, b) => (a.difficulty ?? 2) - (b.difficulty ?? 2) || Math.random() - 0.5)
+
+    if (focusMode === 'ACTIVE_ONLY') {
+      const activePool = [...unconsolidatedStarted, ...consolidatedStarted]
+      if (activePool.length > 0) {
+        return activePool.slice(0, limit)
+      }
+      // Fallback if the user hasn't started any card yet in this scope
+      return unseenCards.slice(0, limit)
+    }
+
+    if (focusMode === 'NEW_ONLY') {
+      return [...unseenCards, ...unconsolidatedStarted, ...consolidatedStarted].slice(0, limit)
+    }
+
+    // Default: CONSOLIDATE_FIRST
+    // 1. All unconsolidated started cards come first so the user masters current cards before getting flooded
+    // 2. Only fill remaining session capacity with unseen cards
+    // 3. If still below limit, top up with already consolidated cards
+    return [...unconsolidatedStarted, ...unseenCards, ...consolidatedStarted].slice(0, limit)
   }
 
   private buildTrainingItem(

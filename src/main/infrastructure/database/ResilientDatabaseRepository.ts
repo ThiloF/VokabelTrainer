@@ -156,10 +156,60 @@ export class ResilientDatabaseRepository
 
   public async getCategories(): Promise<CategoryDTO[]> {
     if (await this.isPgOnline()) return this.pgLexicon.getCategories()
-    return this.state.categories.map((c) => ({
-      ...c,
-      vocabularyCount: this.state.vocabularies.filter((v) => v.categoryId === c.id).length
-    }))
+    const now = new Date()
+    return this.state.categories.map((c) => {
+      const vocabs = this.state.vocabularies.filter((v) => v.categoryId === c.id)
+      let newCount = 0
+      let learningCount = 0
+      let familiarCount = 0
+      let confidentCount = 0
+      let masteredCount = 0
+      let dueCount = 0
+      let totalMasteryPoints = 0
+      let totalSuccess = 0
+      let totalFail = 0
+
+      for (const v of vocabs) {
+        const level = v.progress?.masteryLevel ?? 0
+        const started = ((v.progress?.successCount ?? 0) + (v.progress?.failCount ?? 0)) > 0
+        if (level === 0 && !started) newCount++
+        else if (level <= 1) learningCount++
+        else if (level === 2) familiarCount++
+        else if (level === 3) confidentCount++
+        else masteredCount++
+
+        if (!v.progress || new Date(v.progress.nextReviewAt) <= now) {
+          dueCount++
+        }
+
+        if (level === 0) totalMasteryPoints += started ? 10 : 0
+        else if (level === 1) totalMasteryPoints += 25
+        else if (level === 2) totalMasteryPoints += 50
+        else if (level === 3) totalMasteryPoints += 75
+        else totalMasteryPoints += 100
+
+        totalSuccess += v.progress?.successCount ?? 0
+        totalFail += v.progress?.failCount ?? 0
+      }
+
+      const totalVocab = vocabs.length
+      const folderScorePercent = totalVocab > 0 ? Math.round(totalMasteryPoints / totalVocab) : 0
+      const totalAttempts = totalSuccess + totalFail
+      const accuracyPercent = totalAttempts > 0 ? Math.round((totalSuccess / totalAttempts) * 100) : 0
+
+      return {
+        ...c,
+        vocabularyCount: totalVocab,
+        newCount,
+        learningCount,
+        familiarCount,
+        confidentCount,
+        masteredCount,
+        dueCount,
+        folderScorePercent,
+        accuracyPercent
+      }
+    })
   }
 
   public async saveCategory(data: Partial<CategoryDTO> & { name: string }): Promise<CategoryDTO> {
@@ -191,6 +241,11 @@ export class ResilientDatabaseRepository
   public async deleteCategory(id: string): Promise<void> {
     if (await this.isPgOnline()) return this.pgLexicon.deleteCategory(id)
     this.state.categories = this.state.categories.filter((c) => c.id !== id)
+    for (const v of this.state.vocabularies) {
+      if (v.categoryId === id) {
+        v.categoryId = null
+      }
+    }
     this.saveState()
   }
 
@@ -426,6 +481,55 @@ export class ResilientDatabaseRepository
     if (await this.isPgOnline()) return this.pgLexicon.deleteVocabulary(id)
     this.state.vocabularies = this.state.vocabularies.filter((v) => v.id !== id)
     this.saveState()
+  }
+
+  public async assignVocabulariesToCategory(
+    vocabularyIds: string[],
+    categoryId: string | null
+  ): Promise<number> {
+    if (await this.isPgOnline()) {
+      return this.pgLexicon.assignVocabulariesToCategory(vocabularyIds, categoryId)
+    }
+    const idSet = new Set(vocabularyIds)
+    let updated = 0
+    for (const v of this.state.vocabularies) {
+      if (idSet.has(v.id)) {
+        v.categoryId = categoryId
+        v.updatedAt = new Date().toISOString()
+        updated++
+      }
+    }
+    if (updated > 0) {
+      this.saveState()
+    }
+    return updated
+  }
+
+  public async populateCategoryBatch(input: {
+    targetCategoryId: string
+    count: number
+    tagId?: string
+    onlyUnstarted?: boolean
+  }): Promise<number> {
+    if (await this.isPgOnline()) {
+      return this.pgLexicon.populateCategoryBatch(input)
+    }
+    const candidates = this.state.vocabularies.filter((v) => {
+      if (v.categoryId === input.targetCategoryId) return false
+      if (input.tagId && !v.tags.some((t) => t.id === input.tagId)) return false
+      if (input.onlyUnstarted) {
+        const started = ((v.progress?.successCount ?? 0) + (v.progress?.failCount ?? 0)) > 0
+        return !started && (v.progress?.masteryLevel ?? 0) === 0
+      }
+      return (v.progress?.masteryLevel ?? 0) < 3
+    })
+
+    const selected = candidates
+      .sort(() => Math.random() - 0.5)
+      .slice(0, Math.max(1, input.count))
+      .map((v) => v.id)
+
+    return this.assignVocabulariesToCategory(selected, input.targetCategoryId)
   }
 
   // --- IStudyRepository & IProfileRepository ---

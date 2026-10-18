@@ -40,6 +40,13 @@ export interface ILexiconRepository {
   getVocabularyById(id: string): Promise<VocabularyDTO | null>
   saveVocabulary(input: SaveVocabularyInput): Promise<VocabularyDTO>
   bulkSaveVocabularies(inputs: SaveVocabularyInput[]): Promise<number>
+  assignVocabulariesToCategory(vocabularyIds: string[], categoryId: string | null): Promise<number>
+  populateCategoryBatch(params: {
+    targetCategoryId: string
+    count: number
+    tagId?: string
+    onlyUnstarted?: boolean
+  }): Promise<number>
   deleteVocabulary(id: string): Promise<void>
 }
 

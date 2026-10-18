@@ -65,17 +65,70 @@ export class PrismaLexiconRepository implements ILexiconRepository {
 
   public async getCategories(): Promise<CategoryDTO[]> {
     const list = await this.prisma.client.category.findMany({
-      include: { _count: { select: { vocabularies: true } } },
+      include: {
+        vocabularies: {
+          include: { progress: true }
+        }
+      },
       orderBy: { name: 'asc' }
     })
-    return list.map((c) => ({
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      color: c.color,
-      icon: c.icon,
-      vocabularyCount: c._count.vocabularies
-    }))
+    const now = new Date()
+    return list.map((c) => {
+      let newCount = 0
+      let learningCount = 0
+      let familiarCount = 0
+      let confidentCount = 0
+      let masteredCount = 0
+      let dueCount = 0
+      let totalMasteryPoints = 0
+      let totalSuccess = 0
+      let totalFail = 0
+
+      for (const v of c.vocabularies) {
+        const level = v.progress?.masteryLevel ?? 0
+        const started = ((v.progress?.successCount ?? 0) + (v.progress?.failCount ?? 0)) > 0
+        if (level === 0 && !started) newCount++
+        else if (level <= 1) learningCount++
+        else if (level === 2) familiarCount++
+        else if (level === 3) confidentCount++
+        else masteredCount++
+
+        if (!v.progress || v.progress.nextReviewAt <= now) {
+          dueCount++
+        }
+        // Score weighting: started level 0 gives 10%, level 1 gives 25%, level 2 gives 50%, level 3 gives 75%, level 4 gives 100%
+        if (level === 0) totalMasteryPoints += started ? 10 : 0
+        else if (level === 1) totalMasteryPoints += 25
+        else if (level === 2) totalMasteryPoints += 50
+        else if (level === 3) totalMasteryPoints += 75
+        else totalMasteryPoints += 100
+
+        totalSuccess += v.progress?.successCount ?? 0
+        totalFail += v.progress?.failCount ?? 0
+      }
+
+      const totalVocab = c.vocabularies.length
+      const folderScorePercent = totalVocab > 0 ? Math.round(totalMasteryPoints / totalVocab) : 0
+      const totalAttempts = totalSuccess + totalFail
+      const accuracyPercent = totalAttempts > 0 ? Math.round((totalSuccess / totalAttempts) * 100) : 0
+
+      return {
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        color: c.color,
+        icon: c.icon,
+        vocabularyCount: totalVocab,
+        newCount,
+        learningCount,
+        familiarCount,
+        confidentCount,
+        masteredCount,
+        dueCount,
+        folderScorePercent,
+        accuracyPercent
+      }
+    })
   }
 
   public async saveCategory(data: Partial<CategoryDTO> & { name: string }): Promise<CategoryDTO> {
@@ -335,6 +388,51 @@ export class PrismaLexiconRepository implements ILexiconRepository {
 
   public async deleteVocabulary(id: string): Promise<void> {
     await this.prisma.client.vocabulary.delete({ where: { id } })
+  }
+
+  public async assignVocabulariesToCategory(
+    vocabularyIds: string[],
+    categoryId: string | null
+  ): Promise<number> {
+    if (vocabularyIds.length === 0) return 0
+    const res = await this.prisma.client.vocabulary.updateMany({
+      where: { id: { in: vocabularyIds } },
+      data: { categoryId }
+    })
+    return res.count
+  }
+
+  public async populateCategoryBatch(input: {
+    targetCategoryId: string
+    count: number
+    tagId?: string
+    onlyUnstarted?: boolean
+  }): Promise<number> {
+    const where: any = {
+      NOT: { categoryId: input.targetCategoryId }
+    }
+    if (input.tagId) {
+      where.tags = { some: { tagId: input.tagId } }
+    }
+    const candidates = await this.prisma.client.vocabulary.findMany({
+      where,
+      include: { progress: true }
+    })
+
+    const filtered = candidates.filter((v) => {
+      if (input.onlyUnstarted) {
+        const started = ((v.progress?.successCount ?? 0) + (v.progress?.failCount ?? 0)) > 0
+        return !started && (v.progress?.masteryLevel ?? 0) === 0
+      }
+      return (v.progress?.masteryLevel ?? 0) < 3
+    })
+
+    const selected = filtered
+      .sort(() => Math.random() - 0.5)
+      .slice(0, Math.max(1, input.count))
+      .map((v) => v.id)
+
+    return this.assignVocabulariesToCategory(selected, input.targetCategoryId)
   }
 
   private mapVocabulary(v: any): VocabularyDTO {

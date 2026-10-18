@@ -8,7 +8,8 @@ import {
   Database,
   Flame,
   Trophy,
-  Leaf
+  Leaf,
+  FolderKanban
 } from 'lucide-react'
 import {
   CategoryDTO,
@@ -20,15 +21,17 @@ import {
 import { DashboardPage } from './pages/DashboardPage'
 import { VocabularyPage } from './pages/VocabularyPage'
 import { TrainerPage } from './pages/TrainerPage'
+import { FoldersPage } from './pages/FoldersPage'
 import { ExchangePage } from './pages/ExchangePage'
 import { SettingsPage } from './pages/SettingsPage'
 
-type ActiveTab = 'DASHBOARD' | 'TRAINER' | 'VOCABULARIES' | 'EXCHANGE' | 'SETTINGS'
+type ActiveTab = 'DASHBOARD' | 'TRAINER' | 'FOLDERS' | 'VOCABULARIES' | 'EXCHANGE' | 'SETTINGS'
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('DASHBOARD')
   const [trainerMode, setTrainerMode] = useState<TrainingMode>('TYPING')
   const [trainerLanguageId, setTrainerLanguageId] = useState<string | undefined>(undefined)
+  const [trainerCategoryId, setTrainerCategoryId] = useState<string | undefined>(undefined)
 
   const [dbConnected, setDbConnected] = useState<boolean>(true)
   const [dbError, setDbError] = useState<string | undefined>(undefined)
@@ -68,12 +71,20 @@ export const App: React.FC = () => {
   const handleStartTraining = (mode: TrainingMode, sourceLanguageId?: string) => {
     setTrainerMode(mode)
     setTrainerLanguageId(sourceLanguageId)
+    setTrainerCategoryId(undefined)
+    setActiveTab('TRAINER')
+  }
+
+  const handleStartFolderTraining = (mode: TrainingMode, categoryId: string) => {
+    setTrainerMode(mode)
+    setTrainerCategoryId(categoryId)
     setActiveTab('TRAINER')
   }
 
   const navItems: Array<{ id: ActiveTab; label: string; icon: React.ReactNode }> = [
     { id: 'DASHBOARD', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'TRAINER', label: 'Training & Abfrage', icon: <GraduationCap className="w-4 h-4" /> },
+    { id: 'FOLDERS', label: 'Karteikarten-Ordner', icon: <FolderKanban className="w-4 h-4" /> },
     { id: 'VOCABULARIES', label: 'Vokabel-Manager', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'EXCHANGE', label: 'Import / Export', icon: <ArrowLeftRight className="w-4 h-4" /> },
     { id: 'SETTINGS', label: 'Einstellungen', icon: <Settings className="w-4 h-4" /> }
@@ -174,10 +185,20 @@ export const App: React.FC = () => {
           <TrainerPage
             initialMode={trainerMode}
             initialLanguageId={trainerLanguageId}
+            initialCategoryId={trainerCategoryId}
             languages={languages}
             categories={categories}
             tags={tags}
             onSessionCompleted={refreshAllData}
+          />
+        )}
+        {activeTab === 'FOLDERS' && (
+          <FoldersPage
+            categories={categories}
+            languages={languages}
+            tags={tags}
+            onStartFolderTraining={handleStartFolderTraining}
+            onDataChanged={refreshAllData}
           />
         )}
         {activeTab === 'VOCABULARIES' && (

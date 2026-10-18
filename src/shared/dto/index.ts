@@ -23,6 +23,15 @@ export interface CategoryDTO {
   color: string
   icon: string
   vocabularyCount?: number
+  // Folder Scoring & Mastery Stats
+  newCount?: number
+  learningCount?: number
+  familiarCount?: number
+  confidentCount?: number
+  masteredCount?: number
+  dueCount?: number
+  folderScorePercent?: number // 0..100 weighted mastery score
+  accuracyPercent?: number // 0..100 hit rate (successCount / total)
 }
 
 export interface TagDTO {
@@ -102,6 +111,12 @@ export interface VocabularyFilterInput {
 
 export type QueryDirection = 'TARGET_TO_SOURCE' | 'SOURCE_TO_TARGET' | 'MIXED'
 
+export type CardFocusMode =
+  | 'CONSOLIDATE_FIRST' // Default: Only introduce new cards when current learning cards are mastered/settled
+  | 'ACTIVE_ONLY'       // Only practice cards already started (no unseen cards)
+  | 'NEW_ONLY'          // Deliberately discover new unseen cards
+  | 'ALL_SHUFFLE'       // Mix all cards in folder/filter
+
 export interface StartSessionInput {
   mode: TrainingMode
   sourceLanguageId?: string
@@ -112,6 +127,7 @@ export interface StartSessionInput {
   limit?: number
   reverseDirection?: boolean
   direction?: QueryDirection
+  focusMode?: CardFocusMode
 }
 
 export interface TrainingItemDTO {
